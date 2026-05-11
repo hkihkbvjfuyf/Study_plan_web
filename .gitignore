@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+checklist_state.json
+.claude/
+study-plan-2.0.0/
+study-plan-2.0.0.zip
+.DS_Store

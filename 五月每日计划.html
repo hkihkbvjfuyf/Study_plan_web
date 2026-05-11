@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✦ 流萤研习室 — 将星海点燃 ✦</title>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #faf6f0;
+    --white: #fffdf8;
+    --mint: #8fc9a9;
+    --mint-light: #b8e0cc;
+    --sage: #6b9e7d;
+    --amber: #f4a460;
+    --fire: #ff7b42;
+    --gold: #e8c97a;
+    --bg: #f5efe6;
+    --card: rgba(255,253,248,0.9);
+    --text: #5a4a3a;
+    --text-dim: #9a8a7a;
+    --border: rgba(143,201,169,0.35);
+    --shadow: rgba(107,158,125,0.12);
+    --danger: #e8734a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: "ZCOOL XiaoWei", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding-bottom: 80px;
+    overflow-x: hidden;
+  }
+
+  /* ===== 萤火虫粒子 ===== */
+  .fireflies { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+  .firefly {
+    position: absolute; width: 6px; height: 6px;
+    background: radial-gradient(circle, #e8ffb0 0%, #8fc9a9 40%, transparent 70%);
+    border-radius: 50%;
+    animation: fireflyFloat var(--dur) var(--delay) ease-in-out infinite;
+    box-shadow: 0 0 12px 4px rgba(143,201,169,0.4), 0 0 24px 8px rgba(143,201,169,0.15);
+  }
+  @keyframes fireflyFloat {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+    25% { transform: translate(var(--dx1), var(--dy1)) scale(1.6); opacity: 0.9; }
+    50% { transform: translate(var(--dx2), var(--dy2)) scale(1); opacity: 0.4; }
+    75% { transform: translate(var(--dx3), var(--dy3)) scale(1.4); opacity: 0.8; }
+    100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+  }
+
+  /* ===== 流萤形象 ===== */
+  .chibi-container {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 0 0 12px;
+  }
+  .chibi-container img { border-radius: 12px; }
+
+  /* 表情包栏 */
+  .emoji-row {
+    display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
+    margin-top: 8px; font-size: 1.5em;
+  }
+  .emoji-row span {
+    cursor: pointer; transition: transform 0.2s; animation: emojiBounce 3s ease-in-out infinite;
+    animation-delay: var(--ed);
+  }
+  .emoji-row span:hover { transform: scale(1.3); }
+  @keyframes emojiBounce {
+    0%,100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+    60% { transform: translateY(0); }
+  }
+
+  /* ===== 头部（整体吸顶） ===== */
+  .header-wrap {
+    position: sticky; top: 0; z-index: 10;
+  }
+  .header {
+    background: linear-gradient(180deg, #faf6f0 0%, #f0ebe0 100%);
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    padding: 16px 24px 12px;
+    text-align: center;
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+  .header h1 {
+    font-size: 1.5em; letter-spacing: 2px; color: #5a4a3a;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .header .sub { font-size: 0.75em; color: var(--sage); margin-top: 2px; }
+
+  .progress-bar-wrap {
+    background: rgba(250,246,240,0.92); backdrop-filter: blur(8px);
+    padding: 8px 24px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .progress-bar-outer {
+    background: #e8e0d5; border-radius: 20px; height: 12px;
+    overflow: hidden; max-width: 1200px; margin: 0 auto;
+  }
+  .progress-bar-inner {
+    background: linear-gradient(90deg, #8fc9a9, #f4a460, #ff7b42);
+    height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 20px;
+    box-shadow: 0 0 10px rgba(244,164,96,0.3);
+  }
+  .progress-text { color: var(--text-dim); font-size: 0.75em; margin-top: 4px; text-align: center; }
+  .server-status { font-size: 0.65em; text-align: center; margin-top: 2px; padding: 2px 12px; border-radius: 20px; display: inline-block; }
+  .server-status.online { background: rgba(143,201,169,0.15); color: var(--sage); border: 1px solid rgba(143,201,169,0.3); }
+  .server-status.offline { background: rgba(255,123,66,0.1); color: var(--danger); border: 1px solid rgba(255,123,66,0.2); }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 16px 20px; position: relative; z-index: 1; }
+
+  .weeks-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+  .week-card {
+    background: var(--card); border-radius: 18px;
+    box-shadow: 0 4px 20px var(--shadow);
+    overflow: hidden; border: 1.5px solid var(--border);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .week-card:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(143,201,169,0.2); }
+  .week-title {
+    background: linear-gradient(135deg, #f0ebe0, #e8f0e4);
+    color: var(--text); padding: 12px 16px; font-size: 0.85em; font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center;
+    letter-spacing: 1px; border-bottom: 1px solid var(--border);
+  }
+  .week-title .badge {
+    font-size: 0.7em; background: rgba(143,201,169,0.2); padding: 3px 10px;
+    border-radius: 20px; color: var(--sage);
+  }
+  .day-block { border-bottom: 1px solid rgba(143,201,169,0.15); padding: 3px 0; }
+  .day-block:last-child { border-bottom: none; }
+  .day-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 16px; cursor: pointer; user-select: none; gap: 6px;
+    border-radius: 10px; margin: 2px 6px; transition: background 0.2s;
+  }
+  .day-header:hover { background: rgba(143,201,169,0.08); }
+  .day-label { font-weight: 600; font-size: 0.82em; white-space: nowrap; }
+  .day-tag { font-size: 0.6em; padding: 2px 8px; border-radius: 20px; color: #fff; white-space: nowrap; letter-spacing: 0.5px; }
+  .day-tag.normal { background: #8fc9a9; }
+  .day-tag.plus { background: linear-gradient(135deg, #f4a460, #ff7b42); }
+  .day-tag.light { background: linear-gradient(135deg, #b8e0cc, #8fc9a9); }
+
+  .tasks { padding: 0 16px 6px; display: none; }
+  .day-block.open .tasks { display: block; }
+  .task-row {
+    display: flex; align-items: flex-start; gap: 8px; padding: 4px 0;
+    font-size: 0.78em; cursor: pointer; border-radius: 8px; transition: background 0.15s;
+  }
+  .task-row:hover { background: rgba(143,201,169,0.06); }
+  .task-row input[type="checkbox"] {
+    margin-top: 2px; width: 16px; height: 16px; flex-shrink: 0;
+    cursor: pointer; accent-color: #8fc9a9;
+  }
+  .task-row label { cursor: pointer; flex: 1; line-height: 1.4; }
+  .task-row input:checked + label { text-decoration: line-through; color: var(--text-dim); }
+
+  .subject-tag { font-size: 0.65em; padding: 2px 6px; border-radius: 8px; margin-right: 4px; font-weight: 600; }
+  .subj-math { background: rgba(143,201,169,0.2); color: #5a8a6a; }
+  .subj-eng { background: rgba(244,164,96,0.2); color: #c07830; }
+  .subj-pro { background: rgba(184,224,204,0.3); color: #4a7a5a; }
+  .subj-review { background: rgba(232,201,122,0.25); color: #a08030; }
+
+  .bottom-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(250,246,240,0.9); backdrop-filter: blur(8px);
+    border-top: 1px solid var(--border);
+    padding: 10px 16px; display: flex; gap: 10px;
+    justify-content: center; z-index: 10;
+  }
+  .bottom-bar button {
+    padding: 8px 20px; border-radius: 30px; cursor: pointer;
+    font-size: 0.8em; font-weight: 600; letter-spacing: 1px;
+    transition: all 0.3s; font-family: inherit;
+    border: 1.5px solid var(--border);
+  }
+  .btn-expand { background: linear-gradient(135deg, #8fc9a9, #f4a460); color: #fff; border: none; box-shadow: 0 4px 12px rgba(143,201,169,0.3); }
+  .btn-collapse { background: var(--white); color: var(--sage); }
+  .btn-reset { background: rgba(255,123,66,0.08); color: var(--danger); }
+
+  /* ===== 仪表板 ===== */
+  .dashboard { margin-bottom: 16px; }
+  .dashboard-top { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card {
+    background: var(--card); border-radius: 18px; padding: 18px 14px;
+    text-align: center; box-shadow: 0 4px 16px var(--shadow);
+    border: 1.5px solid var(--border); transition: transform 0.3s;
+  }
+  .stat-card:hover { transform: translateY(-3px); }
+  .stat-card .stat-value { font-size: 2em; font-weight: 700; line-height: 1.2; }
+  .stat-card .stat-label { font-size: 0.75em; color: var(--text-dim); margin-top: 2px; }
+  .stat-card .stat-sub { font-size: 0.7em; color: #b0a090; }
+  .stat-math { border-top: 3px solid #8fc9a9; }
+  .stat-eng { border-top: 3px solid #f4a460; }
+  .stat-pro { border-top: 3px solid #b8e0cc; }
+  .stat-streak { border-top: 3px solid #e8c97a; }
+
+  .viz-card {
+    background: var(--card); border-radius: 18px; padding: 20px;
+    box-shadow: 0 4px 16px var(--shadow);
+    border: 1.5px solid var(--border); transition: transform 0.3s;
+  }
+  .viz-card:hover { transform: translateY(-2px); }
+  .viz-card h3 { font-size: 0.95em; margin-bottom: 14px; color: var(--sage); letter-spacing: 1px; }
+
+  .heatmap { display: flex; gap: 4px; justify-content: center; }
+  .heatmap-col { display: flex; flex-direction: column; gap: 4px; }
+  .heatmap-label { font-size: 0.65em; color: var(--text-dim); text-align: center; height: 18px; line-height: 18px; }
+  .heatmap-cell {
+    width: 32px; height: 32px; border-radius: 8px; position: relative;
+    cursor: default; transition: transform 0.15s;
+  }
+  .heatmap-cell:hover { transform: scale(1.2); z-index: 2; }
+  .heatmap-cell[data-tooltip]:hover::after {
+    content: attr(data-tooltip); position: absolute; bottom: 38px; left: 50%;
+    transform: translateX(-50%); background: #5a4a3a; color: #fff;
+    font-size: 0.65em; padding: 4px 10px; border-radius: 10px;
+    white-space: nowrap; pointer-events: none; z-index: 10;
+  }
+  .heatmap-legend { display: flex; gap: 4px; align-items: center; justify-content: center; margin-top: 12px; font-size: 0.7em; color: var(--text-dim); }
+  .heatmap-legend .box { width: 14px; height: 14px; border-radius: 5px; }
+
+  .week-compare { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center; }
+  .week-compare .w-label { font-size: 0.75em; color: var(--text-dim); margin-bottom: 6px; }
+  .week-compare .w-bar-outer { background: #e8e0d5; border-radius: 20px; height: 100px; position: relative; overflow: hidden; }
+  .week-compare .w-bar-inner { position: absolute; bottom: 0; left: 0; right: 0; border-radius: 20px; transition: height 0.5s; }
+  .week-compare .w-pct { font-size: 1.3em; font-weight: 700; margin-top: 6px; color: var(--sage); }
+
+  /* ===== 激励元素 ===== */
+  .particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+
+  .motivation-banner {
+    background: linear-gradient(135deg, #faf6f0, #f0f4ec);
+    border: 1.5px solid var(--border); color: var(--text);
+    border-radius: 18px; padding: 18px 20px; margin-bottom: 16px;
+    text-align: center; box-shadow: 0 4px 16px var(--shadow);
+  }
+  .motivation-banner .m-title { font-size: 1.05em; font-weight: 600; }
+  .motivation-banner .m-sub { font-size: 0.78em; color: var(--text-dim); margin-top: 4px; }
+
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+  .achievement-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px; border-radius: 20px; font-size: 0.7em;
+    border: 1.5px solid #e8e0d5; background: var(--white); color: #c0b8a8;
+    transition: all 0.4s;
+  }
+  .achievement-badge.unlocked {
+    border-color: #8fc9a9; background: #f0f8f2; color: var(--sage);
+    animation: popIn 0.5s ease; box-shadow: 0 2px 10px rgba(143,201,169,0.2);
+  }
+  @keyframes popIn { 0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+  .rank-badge {
+    display: inline-block; padding: 3px 14px; border-radius: 20px;
+    font-size: 0.7em; font-weight: 700; margin-left: 6px;
+    background: rgba(143,201,169,0.15); color: var(--sage);
+    border: 1px solid rgba(143,201,169,0.3);
+  }
+  .rank-badge.bronze { background: rgba(244,164,96,0.12); color: #c07830; }
+  .rank-badge.silver { background: #f0f0ec; color: #8a8070; }
+  .rank-badge.gold { background: rgba(232,201,122,0.2); color: #a08030; }
+  .rank-badge.diamond { background: rgba(143,201,169,0.15); color: #5a8a6a; }
+  .rank-badge.legend {
+    background: linear-gradient(135deg, #8fc9a9, #e8c97a, #f4a460);
+    color: #fff; animation: legendGlow 2s infinite;
+  }
+  @keyframes legendGlow {
+    0%,100% { box-shadow: 0 0 10px rgba(143,201,169,0.3); }
+    50% { box-shadow: 0 0 24px rgba(244,164,96,0.6); }
+  }
+
+  .week-card.all-done { box-shadow: 0 0 24px rgba(143,201,169,0.4); border-color: #8fc9a9; }
+
+  .countdown-wrap {
+    display: inline-block;
+    background: linear-gradient(135deg, #8fc9a9, #f4a460);
+    color: #fff; padding: 4px 16px; border-radius: 20px;
+    font-size: 0.8em; margin-top: 6px; font-weight: 600;
+    box-shadow: 0 4px 12px rgba(143,201,169,0.3);
+    animation: countPulse 2s infinite;
+  }
+  @keyframes countPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+
+  .quote-bar {
+    text-align: center; padding: 12px 20px; font-size: 0.8em;
+    color: var(--text-dim); background: rgba(255,253,248,0.8);
+    border-radius: 16px; margin-bottom: 12px;
+    box-shadow: 0 2px 8px var(--shadow); border: 1px solid var(--border);
+  }
+
+  /* 光萤之树 */
+  .plant-box { display: flex; flex-direction: column; align-items: center; padding: 10px 0 0; }
+  .plant-canvas { position: relative; width: 100px; height: 120px; }
+  .plant-pot {
+    position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 44px; height: 30px;
+    background: linear-gradient(180deg, #f4a460, #d08040);
+    border-radius: 6px 6px 16px 16px;
+    box-shadow: 0 4px 12px rgba(244,164,96,0.2);
+  }
+  .plant-stem {
+    position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+    width: 4px; border-radius: 2px;
+    background: linear-gradient(180deg, #b8e0cc, #8fc9a9);
+    transition: height 1s ease;
+  }
+  .plant-leaf {
+    position: absolute; width: 16px; height: 10px;
+    background: #b8e0cc; border-radius: 50% 50% 50% 0;
+    transition: opacity 0.5s; opacity: 0.8;
+  }
+  .plant-flower {
+    position: absolute; width: 14px; height: 14px;
+    background: radial-gradient(circle, #ffe8a0, #f4a460);
+    border-radius: 50%; transition: opacity 0.5s;
+    box-shadow: 0 0 14px 3px rgba(244,164,96,0.4);
+  }
+  .plant-label { font-size: 0.65em; color: var(--text-dim); margin-top: 4px; }
+
+  .notes-toggle { font-size: 0.7em; color: #8fc9a9; cursor: pointer; margin-left: 8px; white-space: nowrap; }
+  .notes-toggle:hover { color: #f4a460; }
+  .notes-area {
+    width: 100%; min-height: 34px; margin: 4px 0 2px; padding: 8px 10px;
+    border: 1.5px solid var(--border); border-radius: 12px;
+    font-size: 0.72em; resize: vertical; font-family: inherit;
+    display: none; background: var(--white); color: var(--text);
+    transition: border-color 0.3s;
+  }
+  .notes-area:focus { border-color: #8fc9a9; outline: none; }
+  .notes-area.visible { display: block; }
+
+  .heatmap-x { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: var(--danger); font-size: 1.1em; font-weight: 700; pointer-events: none; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 16px 20px; position: relative; z-index: 1; }
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(90,74,58,0.4); backdrop-filter: blur(6px); z-index: 9999; justify-content: center; align-items: center; }
+  .modal-overlay.show { display: flex; }
+  .modal-box { background: var(--white); border-radius: 20px; padding: 28px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); border: 1.5px solid var(--border); }
+  .modal-box h3 { margin-bottom: 16px; color: var(--sage); }
+  .modal-box .report-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0ece0; font-size: 0.85em; }
+  .modal-close { float: right; background: none; border: none; font-size: 1.3em; cursor: pointer; color: var(--text-dim); transition: color 0.2s; }
+  .modal-close:hover { color: var(--fire); }
+
+  /* ===== 番茄钟统计弹窗 ===== */
+  .stats-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(90,74,58,0.4); backdrop-filter: blur(6px); z-index: 9999; justify-content: center; align-items: flex-start; padding-top: 30px; }
+  .stats-modal-overlay.show { display: flex; }
+  .stats-modal-box { background: var(--white); border-radius: 20px; padding: 24px 28px; max-width: 720px; width: 94%; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); border: 1.5px solid var(--border); }
+  .stats-modal-box h3 { margin-bottom: 6px; color: var(--sage); font-size: 1.05em; }
+  .stats-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+  .stats-summary .ss-card { background: linear-gradient(135deg, #faf6f0, #f0f4ec); border-radius: 14px; padding: 14px 10px; text-align: center; border: 1px solid var(--border); }
+  .stats-summary .ss-value { font-size: 1.6em; font-weight: 700; color: var(--sage); }
+  .stats-summary .ss-label { font-size: 0.68em; color: var(--text-dim); margin-top: 2px; }
+  .stats-chart-wrap { margin: 16px 0; }
+  .stats-chart-wrap h4 { font-size: 0.82em; color: var(--sage); margin-bottom: 6px; letter-spacing: 1px; }
+  .stats-chart-wrap canvas { width: 100%; height: auto; border-radius: 12px; background: rgba(250,246,240,0.5); display: block; }
+  .stats-no-data { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: 0.9em; }
+
+  /* 番茄统计按钮 */
+  .pomo-stats-btn { font-size: 0.58em; color: var(--sage); cursor: pointer; text-align: center; text-decoration: underline; transition: color 0.2s; background: none; border: none; font-family: inherit; }
+  .pomo-stats-btn:hover { color: var(--amber); }
+
+  @media (max-width: 600px) {
+    .stats-summary { grid-template-columns: repeat(2, 1fr); }
+    .stats-modal-box { padding: 16px; max-height: 90vh; }
+  }
+
+  /* 图片占位区 */
+  .img-placeholder {
+    width: 100%; height: 100px; border: 2px dashed var(--border);
+    border-radius: 14px; display: flex; align-items: center;
+    justify-content: center; font-size: 0.75em; color: var(--text-dim);
+    background: rgba(143,201,169,0.04);
+  }
+
+  /* ===== 番茄钟 ===== */
+  .pomodoro-widget { position: fixed; bottom: 90px; right: 20px; z-index: 50; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .pomo-btn {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff7b42, #f4a460);
+    color: #fff; border: none; cursor: pointer;
+    font-size: 0.72em; font-weight: 700;
+    box-shadow: 0 4px 16px rgba(244,164,96,0.35);
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex; align-items: center; justify-content: center;
+    font-family: inherit; letter-spacing: 1px;
+  }
+  .pomo-btn:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(244,164,96,0.5); }
+  .pomo-btn.running { background: linear-gradient(135deg, #8fc9a9, #6b9e7d); animation: pomoPulse 1.5s ease-in-out infinite; box-shadow: 0 4px 20px rgba(143,201,169,0.5); }
+  .pomo-btn.paused { background: linear-gradient(135deg, #e8c97a, #d4a050); animation: none; }
+  @keyframes pomoPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  .pomo-time { font-size: 0.7em; font-weight: 700; color: var(--sage); background: var(--white); padding: 4px 10px; border-radius: 12px; box-shadow: 0 2px 8px var(--shadow); text-align: center; min-width: 64px; }
+  .pomo-count { font-size: 0.6em; color: var(--text-dim); text-align: center; }
+  /* 番茄钟任务选择弹窗 */
+  .pomo-modal {
+    display: none; position: fixed; bottom: 160px; right: 16px;
+    background: var(--white); border-radius: 16px; padding: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15); z-index: 60;
+    max-width: 260px; border: 1.5px solid var(--border);
+  }
+  .pomo-modal.show { display: block; animation: popIn 0.25s ease; }
+  .pomo-modal h4 { font-size: 0.75em; color: var(--sage); margin-bottom: 8px; text-align: center; }
+  .pomo-task-option {
+    display: block; width: 100%; text-align: left; padding: 6px 10px;
+    margin: 2px 0; border: 1px solid #f0ece0; border-radius: 10px;
+    background: #fff; cursor: pointer; font-size: 0.68em; font-family: inherit;
+    transition: all 0.15s; color: var(--text); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .pomo-task-option:hover { background: #f8faf5; border-color: #8fc9a9; }
+  .pomo-task-option.skip { color: var(--text-dim); font-style: italic; text-align: center; }
+  .pomo-log { margin-top: 6px; max-height: 100px; overflow-y: auto; }
+  .pomo-log-entry { font-size: 0.58em; color: var(--text-dim); padding: 2px 0; display: flex; justify-content: space-between; gap: 6px; }
+  .pomo-log-entry .pl-task { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pomo-log-entry .pl-time { white-space: nowrap; color: var(--sage); }
+
+  @media (max-width: 900px) {
+    .weeks-grid { grid-template-columns: 1fr; }
+    .dashboard-top { grid-template-columns: 1fr; }
+    .container { padding: 12px 14px; }
+    .header { padding: 12px 14px 8px; }
+    .header h1 { font-size: 1.2em; }
+    .header .sub { font-size: 0.7em; }
+    .stat-cards { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat-card .stat-value { font-size: 1.5em; }
+    .heatmap-cell { width: 28px; height: 28px; }
+    .chibi-container img { transform: scale(0.85); }
+  }
+  @media (max-width: 500px) {
+    .weeks-grid { grid-template-columns: 1fr; gap: 10px; }
+    .stat-cards { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .stat-card { padding: 12px 8px; }
+    .week-compare { gap: 8px; }
+    .week-compare .w-bar-outer { height: 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 萤火虫粒子背景 -->
+<div class="fireflies" id="firefliesContainer"></div>
+
+<div class="particles" id="particles"></div>
+
+<div class="header-wrap">
+
+<div class="header">
+  <h1>流萤研习室</h1>
+  <div class="sub">考研备考计划 — 每天进步一点点</div>
+  <div class="countdown-wrap" id="countdown">距考研还有 ... 天</div>
+</div>
+
+<div class="progress-bar-wrap">
+  <div class="progress-bar-outer">
+    <div class="progress-bar-inner" id="progressBar"></div>
+  </div>
+  <div class="progress-text" id="progressText">加载中...</div>
+  <div style="text-align:center"><span class="server-status offline" id="serverStatus">未连接服务器</span></div>
+</div>
+
+</div>
+<!-- end header-wrap -->
+
+<div class="container" style="margin-bottom:0; padding-bottom:0;">
+  <div class="quote-bar" id="quoteBar"></div>
+</div>
+
+<div class="container" style="margin-bottom:0; padding-bottom:0; text-align:center;">
+  <!-- 流萤形象 -->
+  <div class="chibi-container">
+    <img src="source/IMG_20260511_211644.png" alt="流萤" style="width:80px; height:auto; flex-shrink:0;" onerror="this.style.display='none'">
+    <div style="font-size:0.65em;color:var(--text-dim);text-align:left;line-height:1.4;">
+      流萤与你一起加油<br>
+      「今天也要闪闪发光」<br>
+      「燃尽黑暗，点亮前路」
+    </div>
+  </div>
+  <!-- 萤火虫装饰 -->
+  <div class="emoji-row" style="margin-bottom:8px;">
+    <span style="--ed:0s">·</span><span style="--ed:0.2s">·</span><span style="--ed:0.4s">·</span>
+    <span style="--ed:0.6s">·</span><span style="--ed:0.8s">·</span><span style="--ed:1s">·</span>
+    <span style="--ed:1.2s">·</span><span style="--ed:1.4s">·</span><span style="--ed:1.6s">·</span>
+  </div>
+</div>
+
+<div class="container" style="margin-bottom:0; padding-bottom:0;">
+  <div class="motivation-banner" id="motivationBanner">
+    <div class="m-title" id="mTitle">流萤之光，照亮研习之路</div>
+    <div class="m-sub" id="mSub"></div>
+    <div class="badge-row" id="badgeRow"></div>
+  </div>
+</div>
+
+<div class="container dashboard" id="dashboard" style="padding-top:8px;">
+  <div class="stat-cards">
+    <div class="stat-card stat-streak">
+      <div class="stat-value" id="streakCount">0</div>
+      <div class="stat-label">连续打卡天数</div>
+      <div class="stat-sub" id="streakBest">最长 0 天</div>
+    </div>
+    <div class="stat-card stat-math">
+      <div class="stat-value" id="mathPct">0%</div>
+      <div class="stat-label">数学完成率</div>
+      <div class="stat-sub" id="mathDone">0/50</div>
+    </div>
+    <div class="stat-card stat-eng">
+      <div class="stat-value" id="engPct">0%</div>
+      <div class="stat-label">英语完成率</div>
+      <div class="stat-sub" id="engDone">0/50</div>
+    </div>
+    <div class="stat-card stat-pro">
+      <div class="stat-value" id="proPct">0%</div>
+      <div class="stat-label">专业课完成率</div>
+      <div class="stat-sub" id="proDone">0/50</div>
+    </div>
+  </div>
+
+  <div class="dashboard-top">
+    <div class="viz-card">
+      <h3>光萤之树 <span class="rank-badge" id="rankBadge" style="float:right;">未开始</span></h3>
+      <div class="plant-box">
+        <div class="plant-canvas" id="plantCanvas">
+          <div class="plant-pot"></div>
+        </div>
+        <div class="plant-label" id="plantLabel">今天你点亮光萤了吗？</div>
+      </div>
+    </div>
+    <div class="viz-card">
+      <h3>学习热力图</h3>
+      <div class="heatmap" id="heatmap"></div>
+      <div class="heatmap-legend">
+        <span>少</span><span class="box" style="background:#f0e8d8"></span>
+        <span class="box" style="background:#c8e0c8"></span>
+        <span class="box" style="background:#8fc9a9"></span>
+        <span class="box" style="background:#f4b878"></span>
+        <span class="box" style="background:#ff7b42"></span>
+        <span>多</span>
+        <span style="margin-left:12px">✗</span><span class="box" style="background:#f0d0d0"></span>
+        <span>遗漏</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-top" style="margin-top:0;">
+    <div class="viz-card">
+      <h3>周进度对比</h3>
+      <div class="week-compare" id="weekCompare"></div>
+    </div>
+    <div class="viz-card">
+      <h3>学习周报</h3>
+      <div style="text-align:center; padding:16px;">
+        <p style="font-size:0.8em;color:var(--text-dim);margin-bottom:12px;">查看本周研习数据总结</p>
+        <button onclick="showReport()" style="padding:10px 28px;background:linear-gradient(135deg,#8fc9a9,#f4a460);color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:0.9em;font-weight:600;font-family:inherit;box-shadow:0 4px 12px rgba(143,201,169,0.3);">查看周报</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="container" id="container"></div>
+
+<div class="modal-overlay" id="reportModal">
+  <div class="modal-box" id="reportContent"></div>
+</div>
+
+<!-- 番茄钟统计弹窗 -->
+<div class="stats-modal-overlay" id="statsModal">
+  <div class="stats-modal-box" id="statsContent"></div>
+</div>
+
+<!-- 番茄钟 -->
+<div class="pomodoro-widget" id="pomodoroWidget">
+  <button class="pomo-btn" id="pomoBtn" onclick="togglePomodoro()" title="开始番茄钟">🍅</button>
+  <div class="pomo-time" id="pomoTime">40~70</div>
+  <div class="pomo-count" id="pomoCount">🍅 0</div>
+  <div class="pomo-modal" id="pomoModal">
+    <h4>选择今日任务</h4>
+    <div id="pomoTaskList"></div>
+    <button class="pomo-task-option skip" onclick="startPomodoro()">✨ 自由学习（不指定任务）</button>
+  </div>
+  <div class="pomo-log" id="pomoLog"></div>
+  <button class="pomo-stats-btn" onclick="showPomoStats()">📊 番茄统计</button>
+</div>
+
+<div class="bottom-bar">
+  <button class="btn-expand" onclick="expandAll()">展开全部</button>
+  <button class="btn-collapse" onclick="collapseAll()">收起全部</button>
+  <button class="btn-reset" onclick="resetAll()">重置进度</button>
+</div>
+
+<script>
+// ========== 萤火虫动画背景 ==========
+(function(){
+  const container = document.getElementById('firefliesContainer');
+  for (let i = 0; i < 25; i++) {
+    const ff = document.createElement('div');
+    ff.className = 'firefly';
+    ff.style.cssText = `
+      top:${5+Math.random()*90}%; left:${5+Math.random()*90}%;
+      --dur:${4+Math.random()*8}s; --delay:${-Math.random()*8}s;
+      --dx1:${(Math.random()-0.5)*120}px; --dy1:${(Math.random()-0.5)*100}px;
+      --dx2:${(Math.random()-0.5)*150}px; --dy2:${(Math.random()-0.5)*130}px;
+      --dx3:${(Math.random()-0.5)*100}px; --dy3:${(Math.random()-0.5)*110}px;
+    `;
+    container.appendChild(ff);
+  }
+})();
+
+// ========== 任务数据 ==========
+const weeks = [
+  {
+    title: "第一周（5.11 – 5.17）",
+    subtitle: "⚡ 概率论 Ch4→Ch7 加速通关 + 自测",
+    days: [
+      { date: "5月11日", label: "周一", tag: "plus", tagText: "加速",
+        tasks: [
+          ["math","数","概率论 Ch4 数学期望 + 方差/协方差 — 一口气过完"],
+          ["math","高数","高数：极限计算快练 + 等价替换（10min）"],
+          ["eng","英","六级听力1套 + 阅读1篇精读 + 单词50个"],
+          ["pro","专","机械设计 Ch1 通读"],
+        ]},
+      { date: "5月12日", label: "周二", tag: "plus", tagText: "加速",
+        tasks: [
+          ["math","数","概率论 Ch5 大数定律 + 中心极限定理 — 视频+教材+课后题"],
+          ["math","高数","高数：导数公式默写 + 参数求导1道题"],
+          ["eng","英","六级听力1套 + 阅读1篇精读 + 单词50个"],
+          ["pro","专","机械设计 Ch2 机械零件强度"],
+        ]},
+      { date: "5月13日", label: "周三", tag: "plus", tagText: "加速",
+        tasks: [
+          ["math","数","概率论 Ch6 数理统计 + 抽样分布(χ²/t/F) — 视频+课后题"],
+          ["math","高数","高数：中值定理1道证明题 + 泰勒展开练习"],
+          ["eng","英","六级听力1套 + 翻译1篇 + 单词50个"],
+          ["pro","专","机械原理 Ch1 绪论 + Ch2 机构结构分析"],
+        ]},
+      { date: "5月14日", label: "周四", tag: "plus", tagText: "加速",
+        tasks: [
+          ["math","数","概率论 Ch7 点估计(矩估计+极大似然) + 区间估计 — 视频+教材"],
+          ["math","高数","高数：不定积分公式默写 + 换元1道题"],
+          ["eng","英","六级听力1套 + 阅读1篇精读 + 单词50个"],
+          ["pro","专","机械原理 Ch2 完成 + 自由度计算题2道"],
+        ]},
+      { date: "5月15日", label: "周五", tag: "plus", tagText: "加速",
+        tasks: [
+          ["math","数","概率论 Ch7 课后习题收尾 + Ch4-Ch7综合习题"],
+          ["math","高数","高数：定积分计算1道题 + 反常积分审敛"],
+          ["eng","英","六级阅读2篇精读 + 单词50个"],
+          ["pro","专","机械设计 Ch3 摩擦磨损润滑"],
+        ]},
+      { date: "5月16日", label: "周六", tag: "plus", tagText: "冲刺",
+        tasks: [
+          ["math","数","概率论全书框架整理 + 核心公式默写 + 模拟自测(计时)"],
+          ["math","高数","高数：本周高数薄弱点速通 + 错题复习"],
+          ["eng","英","六级听力1套 + 作文1篇 + 本周生词大复习"],
+          ["pro","专","机械设计 Ch4 螺纹连接"],
+          ["review","复盘","周复盘 15min — 概率论通关检查"],
+        ]},
+      { date: "5月17日", label: "周日", tag: "light", tagText: "轻量",
+        tasks: [
+          ["math","数","概率论自测复盘 + 错题本整理"],
+          ["math","高数","高数：微分方程公式扫一眼"],
+          ["eng","英","六级听力1套 + 作文模板整理"],
+          ["review","复盘","休息调整 / 补未完成任务"],
+        ]},
+    ]
+  },
+  {
+    title: "第二周（5.18 – 5.24）",
+    subtitle: "⚡ 线代 Ch1→Ch6 全速推进",
+    days: [
+      { date: "5月18日", label: "周一", tag: "plus", tagText: "加速",
+        tasks: [
+          ["math","数","线代 Ch1 行列式 — 视频+教材+课后题（一天一章）"],
+          ["math","高数","高数：多元偏导数计算 + 全微分1道题"],
+          ["eng","英","六级真题阅读2篇 + 听力1套 + 单词50个"],
+          ["pro","专","机械设计 Ch5 带传动 + Ch6 链传动"],
+        ]},
+      { date: "5月19日", label: "周二", tag: "plus", tagText: "加速",
+        tasks: [
+          ["math","数","线代 Ch2 矩阵 — 视频+教材+课后题"],
+          ["math","高数","高数：二重积分计算1道题 + 交换积分次序"],
+          ["eng","英","六级翻译1篇 + 阅读1篇 + 单词50个"],
+          ["pro","专","机械原理 Ch3 平面机构运动分析"],
+        ]},
+      { date: "5月20日", label: "周三", tag: "plus", tagText: "加速",
+        tasks: [
+          ["math","数","线代 Ch3 向量 — 视频+教材+课后题（线性相关性是重点）"],
+          ["math","高数","高数：无穷级数审敛练习 + 幂级数求和1道题"],
+          ["eng","英","六级听力1套 + 作文1篇 + 单词50个"],
+          ["pro","专","机械原理 Ch4 平面机构力分析"],
+        ]},
+      { date: "5月21日", label: "周四", tag: "plus", tagText: "加速",
+        tasks: [
+          ["math","数","线代 Ch4 线性方程组 — 解的结构+习题（线代核心章）"],
+          ["math","高数","高数：极限/导数/积分综合题1道（保持手感）"],
+          ["eng","英","六级真题阅读2篇 + 听力1套 + 单词50个"],
+          ["pro","专","机械设计 Ch7 齿轮传动（一半）"],
+        ]},
+      { date: "5月22日", label: "周五", tag: "plus", tagText: "加速",
+        tasks: [
+          ["math","数","线代 Ch5 特征值与特征向量 — 视频+教材+课后题"],
+          ["math","高数","高数：微分方程求解1道题 + 中值定理证明复习"],
+          ["eng","英","六级翻译1篇 + 阅读1篇 + 单词50个"],
+          ["pro","专","机械设计 Ch7 齿轮传动完成"],
+        ]},
+      { date: "5月23日", label: "周六", tag: "plus", tagText: "冲刺",
+        tasks: [
+          ["math","数","线代 Ch6 二次型 — 视频+教材 + 线代全书框架整理"],
+          ["math","高数","高数：本周高数薄弱点速通 + 公式默写"],
+          ["eng","英","六级完整真题1套(限时模拟) + 批改"],
+          ["pro","专","机械原理 Ch3+Ch4 综合练习"],
+          ["review","复盘","周复盘 15min — 线代进度检查"],
+        ]},
+      { date: "5月24日", label: "周日", tag: "light", tagText: "轻量",
+        tasks: [
+          ["math","数","线代自测 + 错题本整理"],
+          ["math","高数","高数：翻翻公式本"],
+          ["eng","英","六级听力1套精听 + 生词复习"],
+          ["review","复盘","休息调整 / 补未完成任务"],
+        ]},
+    ]
+  },
+  {
+    title: "第三周（5.25 – 5.31）",
+    subtitle: "⚡ 数一综合强化 + 六月蓄势",
+    days: [
+      { date: "5月25日", label: "周一", tag: "plus", tagText: "强化",
+        tasks: [
+          ["math","数","线代错题补漏 + 高数极限/导数/积分综合练习"],
+          ["math","高数","高数：做一套高数选填专项题(计时20min)"],
+          ["eng","英","六级听力1套 + 阅读2篇精读 + 单词50个"],
+          ["pro","专","机械设计 Ch3-7 复习划重点"],
+        ]},
+      { date: "5月26日", label: "周二", tag: "plus", tagText: "强化",
+        tasks: [
+          ["math","数","线代错题补漏 + 高数微分方程/中值定理综合练习"],
+          ["math","高数","高数：多元微分/二重积分综合题1道"],
+          ["eng","英","六级翻译1篇 + 作文模板整理 + 单词50个"],
+          ["pro","专","机械原理 Ch1-4 复习划重点"],
+        ]},
+      { date: "5月27日", label: "周三", tag: "plus", tagText: "强化",
+        tasks: [
+          ["math","数","概率论错题补漏 + 高数无穷级数专题"],
+          ["math","高数","高数：级数审敛+幂级数求和综合练习"],
+          ["eng","英","六级真题完整模拟(含作文,严格计时) + 批改"],
+          ["pro","专","专业课公式/简答题开始整理笔记本"],
+        ]},
+      { date: "5月28日", label: "周四", tag: "plus", tagText: "强化",
+        tasks: [
+          ["math","数","数一三科交叉 — 高数+线代+概率各做1道大题"],
+          ["math","高数","高数：做一套高数计算专项题(计时25min)"],
+          ["eng","英","六级听力精听1套 + 阅读错题复习 + 单词50个"],
+          ["pro","专","机械设计 Ch7 齿轮传动重点 + 做2道计算题"],
+        ]},
+      { date: "5月29日", label: "周五", tag: "plus", tagText: "强化",
+        tasks: [
+          ["math","数","数一三科交叉 — 线代大题1道 + 概率大题1道"],
+          ["math","高数","高数：重点攻克薄弱题型（自选）"],
+          ["eng","英","六级作文练习1篇 + 翻译1篇 + 单词50个"],
+          ["pro","专","机械原理重点题练习 + 整理思维导图"],
+        ]},
+      { date: "5月30日", label: "周六", tag: "plus", tagText: "月末总结",
+        tasks: [
+          ["math","数","五月数学全面复盘 — 高数+线代+概率错题本通览"],
+          ["math","高数","高数：五月高数错题全部过一遍 + 核心公式终版默写"],
+          ["eng","英","六级听力1套 + 整套真题模拟 + 批改"],
+          ["pro","专","专业课五月进度检查 + 六月规划"],
+          ["review","复盘","月末全面复盘 30min — 五月总结 + 六月计划"],
+        ]},
+      { date: "5月31日", label: "周日", tag: "light", tagText: "轻量",
+        tasks: [
+          ["eng","英","六级听力精听 + 作文模板继续整理"],
+          ["math","高数","高数：翻翻公式本 + 错题本（不刷题）"],
+          ["math","数","整理六月学习计划"],
+          ["review","复盘","休息调整，迎接六月 🔥"],
+        ]},
+    ]
+  },
+];
+
+// ========== 持久化 API ==========
+const API = '/api/state';
+let serverOnline = false;
+async function checkServer(retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(API, { cache: 'no-store' });
+      if (res.ok) {
+        serverOnline = true;
+        document.getElementById('serverStatus').textContent = '已连接 · 数据持久化';
+        document.getElementById('serverStatus').className = 'server-status online';
+        return await res.json();
+      }
+    } catch(e) {}
+    if (i < retries - 1) await new Promise(r => setTimeout(r, 1000));
+  }
+  serverOnline = false;
+  const isFileProtocol = window.location.protocol === 'file:';
+  const msg = isFileProtocol
+    ? '请通过 http://127.0.0.1:8765/ 访问，不要直接打开文件'
+    : '未连接 — 请运行 python D:\\Study_plan\\server.py 后刷新';
+  document.getElementById('serverStatus').textContent = msg;
+  document.getElementById('serverStatus').className = 'server-status offline';
+  return {};
+}
+async function getState() {
+  if (serverOnline) {
+    try { const res = await fetch(API, { cache: 'no-store' }); return await res.json(); }
+    catch(e) { serverOnline = false; }
+  }
+  try {
+    const local = localStorage.getItem('studyPlanState');
+    return local ? JSON.parse(local) : {};
+  } catch(e) {
+    return {};
+  }
+}
+async function setState(s) {
+  try {
+    localStorage.setItem('studyPlanState', JSON.stringify(s));
+  } catch(e) {
+    console.warn('本地保存失败:', e);
+  }
+  if (serverOnline) {
+    try { await fetch(API, { method: 'POST', body: JSON.stringify(s) }); }
+    catch(e) { console.warn('服务器保存失败:', e); }
+  }
+}
+
+function subjectClass(subj) {
+  if (subj === 'math') return 'subj-math';
+  if (subj === 'eng') return 'subj-eng';
+  if (subj === 'pro') return 'subj-pro';
+  return 'subj-review';
+}
+
+async function render() {
+  const state = await getState();
+  const container = document.getElementById('container');
+  let html = '<div class="weeks-grid">';
+  let totalChecked = 0, totalTasks = 0, totalAll = 0;
+  weeks.forEach((week, wi) => {
+    html += `<div class="week-card">`;
+    html += `<div class="week-title"><span>${week.title}</span><span class="badge">${week.subtitle}</span></div>`;
+    week.days.forEach((day, di) => {
+      const dayKey = `${wi}_${di}`;
+      const allDone = day.tasks.every((_, ti) => state[`${dayKey}_${ti}`]);
+      html += `<div class="day-block${allDone ? ' open' : ''}" data-day="${dayKey}">`;
+      html += `<div class="day-header" onclick="toggleDay(this.parentElement)">`;
+      html += `<span class="day-label">${allDone ? '✅ ' : ''}${day.date} ${day.label}<span class="notes-toggle" onclick="event.stopPropagation();toggleNotes('${dayKey}')">📝</span></span>`;
+      html += `<span class="day-tag ${day.tag}">${day.tagText}</span>`;
+      html += `</div><div class="tasks">`;
+      day.tasks.forEach((task, ti) => {
+        const id = `${dayKey}_${ti}`;
+        const checked = state[id] ? ' checked' : '';
+        html += `<div class="task-row" onclick="document.getElementById('${id}').click()">`;
+        html += `<input type="checkbox" id="${id}" data-id="${id}"${checked} onchange="onCheck(this)" onclick="event.stopPropagation()">`;
+        html += `<label for="${id}"><span class="subject-tag ${subjectClass(task[0])}">${task[1]}</span>${task[2]}</label>`;
+        html += `</div>`;
+        totalTasks++; totalAll++;
+        if (state[id]) totalChecked++;
+      });
+      const noteKey = `note_${dayKey}`;
+      const noteText = (state[noteKey] || '').replace(/`/g,'\\`').replace(/</g,'&lt;');
+      html += `<textarea class="notes-area" id="ta_${dayKey}" data-note-key="${noteKey}" placeholder="写一句今天的学习心得..." onchange="saveNote(this)" onclick="event.stopPropagation()">${noteText}</textarea>`;
+      html += `</div></div>`;
+    });
+    html += `</div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+  updateProgress(totalChecked, totalTasks);
+}
+
+async function onCheck(cb) {
+  const state = await getState();
+  if (cb.checked) {
+    state[cb.dataset.id] = true;
+    playDing();
+    const rect = cb.getBoundingClientRect();
+    spawnParticles(rect.left + rect.width/2, rect.top + rect.height/2);
+  } else { delete state[cb.dataset.id]; }
+  await setState(state);
+  updateAllProgress();
+  updateDashboard();
+}
+function toggleDay(block) { block.classList.toggle('open'); }
+function expandAll() { document.querySelectorAll('.day-block').forEach(b => b.classList.add('open')); }
+function collapseAll() { document.querySelectorAll('.day-block').forEach(b => b.classList.remove('open')); }
+async function resetAll() {
+  if (confirm('确定要清除所有打卡记录吗？此操作不可恢复。')) { await setState({}); render(); }
+}
+function updateProgress(checked, total) {
+  const pct = total === 0 ? 0 : Math.round(checked / total * 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `光萤进度：${checked} / ${total}（${pct}%）`;
+}
+async function updateAllProgress() {
+  const state = await getState();
+  let checked = 0, total = 0;
+  weeks.forEach((week, wi) => { week.days.forEach((day, di) => { day.tasks.forEach((_, ti) => { total++; if (state[`${wi}_${di}_${ti}`]) checked++; }); }); });
+  updateProgress(checked, total);
+  updateDashboard();
+  weeks.forEach((week, wi) => {
+    week.days.forEach((day, di) => {
+      const dayKey = `${wi}_${di}`;
+      const block = document.querySelector(`[data-day="${dayKey}"]`);
+      if (!block) return;
+      const allDone = day.tasks.every((_, ti) => state[`${dayKey}_${ti}`]);
+      const header = block.querySelector('.day-label');
+      if (header) { header.textContent = allDone ? `✅ ${day.date} ${day.label}` : `${day.date} ${day.label}`; }
+    });
+  });
+}
+
+// ========== 粒子特效（流萤色系） ==========
+function spawnParticles(x, y) {
+  const container = document.getElementById('particles');
+  const colors = ['#e8ffb0','#8fc9a9','#f4a460','#e8c97a','#b8e0cc','#ffe8a0','#ff7b42','#fff8dc'];
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    const size = 3 + Math.random() * 6;
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 30 + Math.random() * 60;
+    p.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${colors[Math.floor(Math.random()*colors.length)]};left:${x}px;top:${y}px;transition:all 0.6s cubic-bezier(0,0.7,0.3,1);opacity:1;box-shadow:0 0 8px 2px rgba(143,201,169,0.4);`;
+    container.appendChild(p);
+    requestAnimationFrame(() => { p.style.transform = `translate(${Math.cos(angle)*dist}px,${Math.sin(angle)*dist}px) scale(0)`; p.style.opacity = '0'; });
+    setTimeout(() => p.remove(), 650);
+  }
+}
+
+// ========== 成就 ==========
+const ACHIEVEMENTS = [
+  { id: 'first_check', name: '初次打卡', desc: '完成第一个任务', check: (s) => Object.values(s).some(v => v) },
+  { id: 'day_done', name: '全日完成', desc: '某天全部任务完成', check: (s) => {
+    for (let w=0; w<3; w++) for (let d=0; d<weeks[w].days.length; d++) {
+      if (weeks[w].days[d].tasks.every((_, t) => s[`${w}_${d}_${t}`])) return true;
+    } return false;
+  }},
+  { id: 'streak_3', name: '连续三天', desc: '连续3天打卡率>=75%', check: (s, ctx) => ctx.bestStreak >= 3 },
+  { id: 'streak_7', name: '连续一周', desc: '连续7天打卡率>=75%', check: (s, ctx) => ctx.bestStreak >= 7 },
+  { id: 'math_50', name: '数学过半', desc: '数学完成率达50%', check: (s, ctx) => ctx.mathPct >= 50 },
+  { id: 'eng_50', name: '英语过半', desc: '英语完成率达50%', check: (s, ctx) => ctx.engPct >= 50 },
+  { id: 'pro_50', name: '专业过半', desc: '专业课完成率达50%', check: (s, ctx) => ctx.proPct >= 50 },
+  { id: 'half_total', name: '总进度过半', desc: '全部任务完成率达50%', check: (s, ctx) => ctx.totalPct >= 50 },
+  { id: 'all_done', name: '全部完成', desc: '全部任务完成', check: (s, ctx) => ctx.totalPct >= 100 },
+];
+function calcAchievements(state, ctx) { return ACHIEVEMENTS.map(a => ({ ...a, unlocked: a.check(state, ctx) })); }
+function renderBadges(achievements) {
+  const row = document.getElementById('badgeRow');
+  let html = '';
+  achievements.forEach(a => {
+    html += `<span class="achievement-badge${a.unlocked ? ' unlocked' : ''}" title="${a.unlocked ? a.desc : '未解锁: '+a.desc}">${a.unlocked ? '·' : '○'} ${a.name}</span>`;
+  });
+  row.innerHTML = html;
+}
+
+function getRank(totalPct) {
+  if (totalPct >= 100) return { label: '全部完成', cls: 'legend' };
+  if (totalPct >= 75) return { label: '优秀', cls: 'diamond' };
+  if (totalPct >= 50) return { label: '良好', cls: 'gold' };
+  if (totalPct >= 25) return { label: '起步', cls: 'silver' };
+  if (totalPct >= 1) return { label: '初学', cls: 'bronze' };
+  return { label: '未开始', cls: '' };
+}
+
+function updateMotivation(state, ctx) {
+  const today = new Date();
+  const month = today.getMonth() + 1, day = today.getDate();
+  const todayStr = `${month}月${day}日`;
+  let todayDone = 0, todayTotal = 0;
+  weeks.forEach((week, wi) => { week.days.forEach((dayInfo, di) => { if (dayInfo.date === todayStr) { dayInfo.tasks.forEach((_, ti) => { todayTotal++; if (state[`${wi}_${di}_${ti}`]) todayDone++; }); } }); });
+  const title = document.getElementById('mTitle'), sub = document.getElementById('mSub');
+  if (todayTotal === 0) {
+    title.textContent = '流萤之光，照亮研习之路';
+    sub.textContent = '即使不在计划表上，也要坚持学习';
+  } else if (todayDone === 0) {
+    const msgs = ['萤火虽微，亦能照亮前路', '打开书本，迈出第一步', '每一步都算数，现在就开始'];
+    title.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+    sub.textContent = `${todayStr} · 尚未开始`;
+  } else if (todayDone < todayTotal) {
+    const pct = Math.round(todayDone / todayTotal * 100);
+    const msgs = [`当前进度 ${pct}%，继续加油`, `还有 ${todayTotal - todayDone} 项待完成，保持节奏`, `点点萤火，汇聚成星河`];
+    title.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+    sub.textContent = `${todayStr} · ${todayDone}/${todayTotal} 已完成`;
+  } else {
+    const msgs = ['今日任务全部完成，表现优秀', '今天也成功完成了所有任务', '满分的一天，继续保持'];
+    title.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+    sub.textContent = `${todayStr} · 全部完成，辛苦了`;
+  }
+  const rank = getRank(ctx.totalPct);
+  document.getElementById('rankBadge').textContent = rank.label;
+  document.getElementById('rankBadge').className = 'rank-badge ' + rank.cls;
+}
+
+let lastAllDoneState = {};
+function checkDayComplete(state) {
+  weeks.forEach((week, wi) => {
+    week.days.forEach((dayInfo, di) => {
+      const allDone = dayInfo.tasks.every((_, ti) => state[`${wi}_${di}_${ti}`]);
+      const wasAllDone = dayInfo.tasks.every((_, ti) => lastAllDoneState[`${wi}_${di}_${ti}`]);
+      if (allDone && !wasAllDone) {
+        const block = document.querySelector(`[data-day="${wi}_${di}"]`);
+        if (block) { block.classList.add('all-done'); const rect = block.getBoundingClientRect(); spawnParticles(rect.left + rect.width/2, rect.top + rect.height/2); setTimeout(() => block.classList.remove('all-done'), 3000); }
+        document.getElementById('mTitle').textContent = '全天任务全部完成，太棒了';
+      }
+    });
+  });
+  lastAllDoneState = { ...state };
+}
+
+// ===== 倒计时 =====
+function updateCountdown() {
+  const diff = new Date(2026, 11, 19, 8, 30, 0).getTime() - new Date().getTime();
+  document.getElementById('countdown').textContent = `距考研还有 ${Math.max(0, Math.ceil(diff / 86400000))} 天`;
+}
+setInterval(updateCountdown, 60000); updateCountdown();
+
+// ===== 音效 =====
+let audioCtx = null;
+function playDing() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1047, now);
+    osc.frequency.setValueAtTime(1319, now + 0.08);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc.start(now); osc.stop(now + 0.35);
+  } catch(e) {}
+}
+
+// ===== 流萤名言 =====
+const QUOTES = [
+  '「我将...点燃星海」— 流萤',
+  '「即使只有微弱的光，也要照亮前路」',
+  '「不积跬步，无以至千里」— 荀子',
+  '「今天不想学，所以才要去学」— 村上春树',
+  '「最痛苦的不是失败，是"我本可以"」',
+  '「乾坤未定，你我皆是黑马」',
+  '「星光不问赶路人，时光不负有心人」',
+  '「你只管努力，剩下的交给时间」',
+  '「萤火虽微，汇聚成光」',
+  '「当下的每一次坚持，都在给未来的自己加码」',
+  '「考研这条路，走到最后的都上岸了」',
+  '「将来的你，一定会感谢现在拼命的自己」',
+  '「多学一分钟，老公会不同」',
+  '「耐得住寂寞，才守得住繁华」',
+];
+function randomQuote() { return QUOTES[Math.floor(Math.random() * QUOTES.length)]; }
+document.getElementById('quoteBar').textContent = randomQuote();
+
+// ===== 笔记 =====
+function toggleNotes(dayKey) { const ta = document.getElementById('ta_' + dayKey); if (ta) ta.classList.toggle('visible'); }
+async function saveNote(ta) {
+  const state = await getState();
+  const key = ta.dataset.noteKey;
+  if (ta.value.trim()) state[key] = ta.value; else delete state[key];
+  await setState(state);
+}
+
+// ===== 光萤之树 =====
+function updatePlant(totalPct) {
+  const canvas = document.getElementById('plantCanvas');
+  const label = document.getElementById('plantLabel');
+  canvas.querySelectorAll('.plant-stem,.plant-leaf,.plant-flower').forEach(e => e.remove());
+  const stemH = Math.max(4, Math.round(totalPct * 0.7));
+  const stem = document.createElement('div'); stem.className = 'plant-stem'; stem.style.height = stemH + 'px'; stem.style.bottom = '26px'; canvas.appendChild(stem);
+  const leafPositions = [
+    { pct: 5, bottom: 30, left: 35, rotate: 30 }, { pct: 15, bottom: 38, left: 65, rotate: -30 },
+    { pct: 25, bottom: 46, left: 35, rotate: 25 }, { pct: 35, bottom: 54, left: 65, rotate: -25 },
+    { pct: 50, bottom: 62, left: 40, rotate: 20 }, { pct: 65, bottom: 70, left: 60, rotate: -20 },
+    { pct: 80, bottom: 78, left: 42, rotate: 15 }, { pct: 95, bottom: 86, left: 58, rotate: -15 },
+  ];
+  leafPositions.forEach(lp => { if (totalPct >= lp.pct) { const leaf = document.createElement('div'); leaf.className = 'plant-leaf'; leaf.style.bottom = lp.bottom + 'px'; leaf.style.left = lp.left + '%'; leaf.style.transform = `rotate(${lp.rotate}deg)`; canvas.appendChild(leaf); } });
+  if (totalPct >= 50) { const f = document.createElement('div'); f.className = 'plant-flower'; f.style.bottom = (26 + stemH) + 'px'; f.style.left = '50%'; f.style.transform = 'translateX(-50%)'; canvas.appendChild(f); }
+  if (totalPct >= 75) { ['38%','62%'].forEach(pos => { const f = document.createElement('div'); f.className = 'plant-flower'; f.style.bottom = (26 + stemH - 8) + 'px'; f.style.left = pos; f.style.transform = 'translateX(-50%)'; canvas.appendChild(f); }); }
+  if (totalPct === 0) label.textContent = '等待第一盏萤火被点亮...';
+  else if (totalPct < 25) label.textContent = '萤火之芽破土而出';
+  else if (totalPct < 50) label.textContent = '光萤之叶舒展开来';
+  else if (totalPct < 75) label.textContent = '萤火之花绽放';
+  else if (totalPct < 100) label.textContent = '繁萤似锦，即将点燃星海';
+  else label.textContent = '星海已被点燃，你是真正的光萤';
+}
+
+// ===== 周报 =====
+async function showReport() {
+  const state = await getState();
+  const now = new Date();
+  let currentWeek = -1;
+  weeks.forEach((week, wi) => { week.days.forEach((day) => { if (day.date === `${now.getMonth()+1}月${now.getDate()}日`) currentWeek = wi; }); });
+  if (currentWeek < 0) currentWeek = weeks.length - 1;
+  let report = '';
+  for (let w = 0; w < weeks.length; w++) {
+    const week = weeks[w];
+    let wDone = 0, wTotal = 0;
+    const subj = { math: [0,0], eng: [0,0], pro: [0,0], review: [0,0] };
+    let emptyDays = 0;
+    week.days.forEach((day, di) => {
+      let dayDone = 0;
+      day.tasks.forEach((task, ti) => { wTotal++; subj[task[0]][1]++; if (state[`${w}_${di}_${ti}`]) { wDone++; dayDone++; subj[task[0]][0]++; } });
+      if (dayDone === 0) emptyDays++;
+    });
+    const pct = wTotal ? Math.round(wDone / wTotal * 100) : 0;
+    const isCurrent = w === currentWeek;
+    report += `<div style="margin-bottom:14px;${isCurrent ? 'background:rgba(143,201,169,0.08);border-radius:8px;padding:10px;border:1px solid rgba(143,201,169,0.2);' : ''}">`;
+    report += `<strong>${week.title}</strong>${isCurrent ? ' 👈 当前周' : ''}<br>`;
+    report += `<div class="report-row"><span>总完成率</span><span><b>${pct}%</b></span></div>`;
+    report += `<div class="report-row"><span>数学</span><span>${subj.math[0]}/${subj.math[1]}</span></div>`;
+    report += `<div class="report-row"><span>英语</span><span>${subj.eng[0]}/${subj.eng[1]}</span></div>`;
+    report += `<div class="report-row"><span>专业课</span><span>${subj.pro[0]}/${subj.pro[1]}</span></div>`;
+    report += `<div class="report-row"><span>0打卡天数</span><span style="color:${emptyDays ? 'var(--danger)' : '#8fc9a9'}">${emptyDays} 天</span></div>`;
+    report += `</div>`;
+  }
+  report += `<div style="margin-top:12px;padding-top:8px;border-top:1px solid #f0ece0;font-size:0.8em;text-align:center;color:var(--text-dim);">流萤寄语：<br><em>${randomQuote()}</em></div>`;
+  document.getElementById('reportContent').innerHTML = `<button class="modal-close" onclick="closeReport()">✕</button><h3>研习周报</h3>${report}`;
+  document.getElementById('reportModal').classList.add('show');
+}
+function closeReport() { document.getElementById('reportModal').classList.remove('show'); }
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'reportModal') closeReport();
+  const pomoModal = document.getElementById('pomoModal');
+  if (pomoModal.classList.contains('show') && !pomoModal.contains(e.target) && e.target.id !== 'pomoBtn') {
+    pomoModal.classList.remove('show');
+  }
+});
+
+// ===== 热力图 =====
+function getHeatColor(pct) {
+  if (pct === 0) return '#f0e8d8';
+  if (pct <= 0.25) return '#c8e0c8';
+  if (pct <= 0.5) return '#8fc9a9';
+  if (pct <= 0.75) return '#f4b878';
+  return '#ff7b42';
+}
+function parseTipDate(tip) { const m = tip.match(/(\d+)月(\d+)日/); if (!m) return null; return new Date(2026, parseInt(m[1]) - 1, parseInt(m[2])); }
+function renderHeatmap(dailyPcts) {
+  const container = document.getElementById('heatmap');
+  const dayNames = ['一', '二', '三', '四', '五', '六', '日'];
+  let html = '';
+  for (let col = 0; col < 7; col++) {
+    html += '<div class="heatmap-col">';
+    html += `<div class="heatmap-label">${dayNames[col]}</div>`;
+    for (let row = 0; row < 3; row++) {
+      const dayIdx = row * 7 + col;
+      if (dayIdx < dailyPcts.length) {
+        const d = dailyPcts[dayIdx];
+        html += `<div class="heatmap-cell" style="background:${getHeatColor(d.pct)}" data-tooltip="${5}月${11 + dayIdx}日: ${d.done}/${d.total} 完成"></div>`;
+      } else { html += `<div class="heatmap-cell" style="background:transparent"></div>`; }
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+  const now = new Date(); const today = new Date(2026, now.getMonth(), now.getDate());
+  container.querySelectorAll('.heatmap-cell').forEach(cell => {
+    const bg = cell.style.background;
+    if (bg && bg !== 'rgb(240, 232, 216)' && bg !== '#f0e8d8') return;
+    const tip = cell.getAttribute('data-tooltip') || '';
+    if (!tip.includes('0/')) return;
+    const cellDate = parseTipDate(tip);
+    if (cellDate && cellDate < today) { cell.style.background = '#f0d0d0'; const x = document.createElement('span'); x.className = 'heatmap-x'; x.textContent = '✗'; cell.appendChild(x); }
+  });
+}
+
+function updateWeekCompare(dailyPcts) {
+  const container = document.getElementById('weekCompare');
+  const weekLabels = ['第一周', '第二周', '第三周'];
+  const weekColors = ['#8fc9a9', '#f4a460', '#e8c97a'];
+  let html = '';
+  for (let w = 0; w < 3; w++) {
+    const start = w * 7, end = Math.min(start + 7, dailyPcts.length);
+    let weekDone = 0, weekTotal = 0;
+    for (let i = start; i < end; i++) { weekDone += dailyPcts[i].done; weekTotal += dailyPcts[i].total; }
+    const pct = weekTotal ? Math.round(weekDone / weekTotal * 100) : 0;
+    html += `<div><div class="w-label">${weekLabels[w]}</div><div class="w-bar-outer"><div class="w-bar-inner" style="height:${pct}%;background:${weekColors[w]}"></div></div><div class="w-pct">${pct}%</div></div>`;
+  }
+  container.innerHTML = html;
+}
+
+// ========== 主仪表板 ==========
+async function updateDashboard() {
+  const state = await getState();
+  let mathDone = 0, mathTotal = 0, engDone = 0, engTotal = 0, proDone = 0, proTotal = 0, reviewDone = 0, reviewTotal = 0;
+  const dailyPcts = [];
+  weeks.forEach((week, wi) => {
+    week.days.forEach((day, di) => {
+      let dayDone = 0, dayTotal = day.tasks.length;
+      day.tasks.forEach((task, ti) => {
+        const id = `${wi}_${di}_${ti}`, subj = task[0];
+        if (subj === 'math') { mathTotal++; if (state[id]) mathDone++; }
+        else if (subj === 'eng') { engTotal++; if (state[id]) engDone++; }
+        else if (subj === 'pro') { proTotal++; if (state[id]) proDone++; }
+        else { reviewTotal++; if (state[id]) reviewDone++; }
+        if (state[id]) dayDone++;
+      });
+      dailyPcts.push({ wi, di, done: dayDone, total: dayTotal, pct: dayTotal ? dayDone / dayTotal : 0 });
+    });
+  });
+  const mathPctVal = mathTotal ? Math.round(mathDone / mathTotal * 100) : 0;
+  const engPctVal = engTotal ? Math.round(engDone / engTotal * 100) : 0;
+  const proPctVal = proTotal ? Math.round(proDone / proTotal * 100) : 0;
+  const totalPctVal = (mathTotal + engTotal + proTotal + reviewTotal) ? Math.round((mathDone + engDone + proDone + reviewDone) / (mathTotal + engTotal + proTotal + reviewTotal) * 100) : 0;
+  document.getElementById('mathPct').textContent = mathPctVal + '%'; document.getElementById('mathDone').textContent = `${mathDone}/${mathTotal}`;
+  document.getElementById('engPct').textContent = engPctVal + '%'; document.getElementById('engDone').textContent = `${engDone}/${engTotal}`;
+  document.getElementById('proPct').textContent = proPctVal + '%'; document.getElementById('proDone').textContent = `${proDone}/${proTotal}`;
+  let streak = 0, bestStreak = 0, currentStreak = 0;
+  for (let i = dailyPcts.length - 1; i >= 0; i--) {
+    if (dailyPcts[i].pct >= 0.75) { currentStreak++; if (currentStreak > bestStreak) bestStreak = currentStreak; }
+    else { const dayDate = new Date(2026, 4, 11 + i); if (dayDate > new Date() && dailyPcts[i].done === 0) continue; currentStreak = 0; }
+  }
+  streak = currentStreak;
+  document.getElementById('streakCount').textContent = streak;
+  document.getElementById('streakBest').textContent = `最长 ${bestStreak} 天`;
+  renderHeatmap(dailyPcts);
+  updateWeekCompare(dailyPcts);
+  const ctx = { bestStreak, mathPct: mathPctVal, engPct: engPctVal, proPct: proPctVal, totalPct: totalPctVal };
+  renderBadges(calcAchievements(state, ctx));
+  updateMotivation(state, ctx);
+  checkDayComplete(state);
+  updatePlant(totalPctVal);
+}
+
+// ===== 番茄钟 =====
+const POMO_BREAK = 5 * 60;
+function randomWork() { return (40 + Math.floor(Math.random() * 31)) * 60; }
+let pomoTimer = null, pomoSeconds = randomWork(), pomoRunning = false, pomoPaused = false, pomoIsBreak = false, pomoCount = 0;
+let pomoTask = '', pomoStartTime = 0;
+
+function updatePomoDisplay() {
+  const m = Math.floor(pomoSeconds / 60), s = pomoSeconds % 60;
+  document.getElementById('pomoTime').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  document.getElementById('pomoCount').textContent = '🍅 ' + pomoCount;
+}
+
+async function togglePomodoro() {
+  if (!pomoRunning) {
+    // show task selector
+    await showPomoTaskSelector();
+  } else if (!pomoPaused) {
+    pausePomodoro();
+  } else {
+    resumePomodoro();
+  }
+}
+
+async function showPomoTaskSelector() {
+  const now = new Date();
+  const todayStr = `${now.getMonth()+1}月${now.getDate()}日`;
+  const state = await getState();
+  let tasks = [];
+  weeks.forEach((week, wi) => {
+    week.days.forEach((day, di) => {
+      if (day.date === todayStr) {
+        day.tasks.forEach((task, ti) => {
+          const id = `${wi}_${di}_${ti}`;
+          if (!state[id]) { // only show unchecked tasks
+            tasks.push({ id, text: task[2], subj: task[1] });
+          }
+        });
+      }
+    });
+  });
+  // if all done, show all tasks
+  if (tasks.length === 0) {
+    weeks.forEach((week, wi) => {
+      week.days.forEach((day, di) => {
+        if (day.date === todayStr) {
+          day.tasks.forEach((task, ti) => {
+            tasks.push({ id: `${wi}_${di}_${ti}`, text: task[2], subj: task[1] });
+          });
+        }
+      });
+    });
+  }
+
+  const list = document.getElementById('pomoTaskList');
+  let html = '';
+  tasks.forEach(t => {
+    const subjClass = t.subj === '数' ? 'math' : t.subj === '英' ? 'eng' : t.subj === '专' ? 'pro' : 'review';
+    html += `<button class="pomo-task-option" onclick="startPomodoro('${t.id.replace(/'/g, "\\'")}', '${t.text.replace(/'/g, "\\'").substring(0, 30)}')"><span class="subject-tag subj-${subjClass}">${t.subj}</span>${t.text.substring(0, 30)}</button>`;
+  });
+  if (tasks.length === 0) html = '<p style="font-size:0.68em;color:var(--text-dim);text-align:center;padding:8px;">今天没有计划任务~</p>';
+  list.innerHTML = html;
+  document.getElementById('pomoModal').classList.add('show');
+}
+
+function startPomodoro(taskId, taskLabel) {
+  document.getElementById('pomoModal').classList.remove('show');
+  pomoTask = taskLabel || '';
+  pomoStartTime = Date.now();
+  if (pomoTimer) clearInterval(pomoTimer);
+  pomoSeconds = randomWork(); pomoRunning = true; pomoPaused = false; pomoIsBreak = false;
+  const btn = document.getElementById('pomoBtn');
+  btn.textContent = '🍅'; btn.className = 'pomo-btn running';
+  btn.title = pomoTask || '自由学习';
+  updatePomoDisplay(); pomoTimer = setInterval(pomoTick, 1000);
+}
+
+async function savePomoRecord(durationMin, task) {
+  const state = await getState();
+  const today = new Date();
+  const key = `pomo_${today.getFullYear()}_${today.getMonth()+1}_${today.getDate()}`;
+  const records = state[key] || [];
+  records.push({
+    time: `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`,
+    duration: durationMin,
+    task: task || '自由学习',
+    completed: true
+  });
+  state[key] = records;
+  await setState(state);
+  renderPomoLog();
+}
+
+async function renderPomoLog() {
+  const state = await getState();
+  const today = new Date();
+  const key = `pomo_${today.getFullYear()}_${today.getMonth()+1}_${today.getDate()}`;
+  const records = state[key] || [];
+  const log = document.getElementById('pomoLog');
+  if (records.length === 0) { log.innerHTML = ''; return; }
+  let html = '';
+  records.forEach(r => {
+    html += `<div class="pomo-log-entry"><span class="pl-time">${r.time}</span><span class="pl-task">${r.task}</span><span style="font-size:0.85em">${r.duration}min</span></div>`;
+  });
+  log.innerHTML = html;
+  pomoCount = records.length;
+  document.getElementById('pomoCount').textContent = '🍅 ' + pomoCount;
+}
+
+function pausePomodoro() { pomoPaused = true; clearInterval(pomoTimer); document.getElementById('pomoBtn').className = 'pomo-btn paused'; }
+function resumePomodoro() { pomoPaused = false; document.getElementById('pomoBtn').className = 'pomo-btn running'; updatePomoDisplay(); pomoTimer = setInterval(pomoTick, 1000); }
+
+function pomoTick() {
+  pomoSeconds--; updatePomoDisplay();
+  if (pomoSeconds <= 0) {
+    clearInterval(pomoTimer); playDing();
+    if (!pomoIsBreak) {
+      const workDuration = Math.round((Date.now() - pomoStartTime) / 60000);
+      pomoCount++;
+      savePomoRecord(workDuration, pomoTask);
+      document.getElementById('pomoBtn').textContent = '☕'; document.getElementById('pomoBtn').className = 'pomo-btn paused';
+      document.getElementById('pomoTime').textContent = '完成！休息5分钟~';
+      document.getElementById('pomoModal').classList.remove('show');
+      setTimeout(() => {
+        pomoIsBreak = true; pomoSeconds = POMO_BREAK;
+        document.getElementById('pomoBtn').className = 'pomo-btn running';
+        pomoTimer = setInterval(pomoTick, 1000); updatePomoDisplay();
+      }, 2000);
+    } else {
+      document.getElementById('pomoBtn').textContent = '🍅'; document.getElementById('pomoBtn').className = 'pomo-btn paused';
+      document.getElementById('pomoTime').textContent = '休息结束~'; pomoRunning = false; pomoIsBreak = false; updatePomoDisplay();
+    }
+  }
+}
+
+// ===== 番茄钟统计 =====
+function collectPomoData(state) {
+  const daily = [];
+  for (let d = 11; d <= 31; d++) {
+    const key = `pomo_2026_5_${d}`;
+    const records = state[key] || [];
+    const totalMin = records.reduce((sum, r) => sum + (r.duration || 0), 0);
+    daily.push({ date: d, day: `5/${d}`, totalMin, sessions: records.length, records });
+  }
+  return daily;
+}
+
+function showPomoStats() {
+  getState().then(state => {
+    const daily = collectPomoData(state);
+    const totalMin = daily.reduce((s, d) => s + d.totalMin, 0);
+    const totalHours = (totalMin / 60).toFixed(1);
+    const daysWithStudy = daily.filter(d => d.totalMin > 0).length;
+    const avgMin = daysWithStudy > 0 ? Math.round(totalMin / daysWithStudy) : 0;
+    const bestDay = daily.reduce((best, d) => d.totalMin > best.totalMin ? d : best, { totalMin: 0 });
+    const totalSessions = daily.reduce((s, d) => s + d.sessions, 0);
+
+    let html = `<button class="modal-close" onclick="closePomoStats()">✕</button>`;
+    html += `<h3>🍅 番茄钟研习统计</h3>`;
+    html += `<div class="stats-summary">`;
+    html += `<div class="ss-card"><div class="ss-value">${totalHours}h</div><div class="ss-label">总学习时长</div></div>`;
+    html += `<div class="ss-card"><div class="ss-value">${avgMin}min</div><div class="ss-label">日均学习</div></div>`;
+    html += `<div class="ss-card"><div class="ss-value">${bestDay.totalMin}min</div><div class="ss-label">最佳单日 ${bestDay.totalMin ? bestDay.day : ''}</div></div>`;
+    html += `<div class="ss-card"><div class="ss-value">${totalSessions}</div><div class="ss-label">番茄总数</div></div>`;
+    html += `</div>`;
+
+    if (totalMin === 0) {
+      html += `<div class="stats-no-data">🍃 还没有番茄记录<br><span style="font-size:0.7em;">开启一个番茄钟，让萤火开始闪烁吧 ✨</span></div>`;
+    } else {
+      html += `<div class="stats-chart-wrap"><h4>📊 每日学习时长（分钟）</h4><canvas id="chartDaily" width="640" height="240"></canvas></div>`;
+      html += `<div class="stats-chart-wrap"><h4>📈 累计学习时长趋势（小时）</h4><canvas id="chartCumulative" width="640" height="220"></canvas></div>`;
+      html += `<div class="stats-chart-wrap"><h4>📅 周学习量对比（小时）</h4><canvas id="chartWeekly" width="640" height="200"></canvas></div>`;
+    }
+
+    document.getElementById('statsContent').innerHTML = html;
+    document.getElementById('statsModal').classList.add('show');
+
+    if (totalMin > 0) {
+      setTimeout(() => {
+        drawDailyBarChart(document.getElementById('chartDaily'), daily);
+        drawCumulativeChart(document.getElementById('chartCumulative'), daily);
+        drawWeeklyChart(document.getElementById('chartWeekly'), daily);
+      }, 50);
+    }
+  });
+}
+
+function closePomoStats() { document.getElementById('statsModal').classList.remove('show'); }
+
+// ---- Canvas 图表绘制 ----
+// roundRect polyfill
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, radii) {
+    let tl, tr, br, bl;
+    if (typeof radii === 'number') tl = tr = br = bl = radii;
+    else if (Array.isArray(radii)) {
+      tl = radii[0] || 0; tr = radii[1] || 0; br = radii[2] || 0; bl = radii[3] || 0;
+    } else { tl = tr = br = bl = 0; }
+    this.moveTo(x + tl, y);
+    this.lineTo(x + w - tr, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + tr);
+    this.lineTo(x + w, y + h - br);
+    this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+    this.lineTo(x + bl, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - bl);
+    this.lineTo(x, y + tl);
+    this.quadraticCurveTo(x, y, x + tl, y);
+    this.closePath();
+  };
+}
+
+const CHART_COLORS = { bar: '#8fc9a9', barHi: '#ff7b42', line: '#f4a460', lineFill: 'rgba(244,164,96,0.12)', grid: '#e8e0d5', text: '#9a8a7a', accent: '#6b9e7d', week: ['#8fc9a9', '#f4a460', '#e8c97a'] };
+
+function setupCanvas(canvas, w, h) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+  return ctx;
+}
+
+function drawDailyBarChart(canvas, daily) {
+  const W = 640, H = 240, padL = 40, padR = 16, padT = 20, padB = 36;
+  const ctx = setupCanvas(canvas, W, H);
+  const chartW = W - padL - padR, chartH = H - padT - padB;
+  const maxVal = Math.max(1, ...daily.map(d => d.totalMin));
+  const barW = Math.max(6, Math.floor(chartW / daily.length) - 4);
+  const gap = (chartW - barW * daily.length) / (daily.length + 1);
+
+  // Grid lines & Y-axis
+  ctx.strokeStyle = CHART_COLORS.grid; ctx.lineWidth = 1;
+  ctx.fillStyle = CHART_COLORS.text; ctx.font = '11px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + chartH * (1 - i / 4);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillText(Math.round(maxVal * i / 4) + '', padL - 6, y + 4);
+  }
+
+  // Bars
+  daily.forEach((d, idx) => {
+    const x = padL + gap + idx * (barW + gap);
+    const barH = d.totalMin > 0 ? Math.max(2, (d.totalMin / maxVal) * chartH) : 0;
+    const y = padT + chartH - barH;
+    const grad = ctx.createLinearGradient(x, y, x, padT + chartH);
+    const color = d.totalMin >= 120 ? CHART_COLORS.barHi : CHART_COLORS.bar;
+    grad.addColorStop(0, color); grad.addColorStop(1, color + '44');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, [3, 3, 0, 0]);
+    ctx.fill();
+  });
+
+  // X-axis labels (every 3 days)
+  ctx.textAlign = 'center'; ctx.fillStyle = CHART_COLORS.text; ctx.font = '10px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif';
+  for (let i = 0; i < daily.length; i += 3) {
+    const x = padL + gap + i * (barW + gap) + barW / 2;
+    ctx.fillText(daily[i].day, x, H - 6);
+  }
+}
+
+function drawCumulativeChart(canvas, daily) {
+  const W = 640, H = 220, padL = 40, padR = 16, padT = 16, padB = 32;
+  const ctx = setupCanvas(canvas, W, H);
+  const chartW = W - padL - padR, chartH = H - padT - padB;
+  const cumValues = []; let running = 0;
+  daily.forEach(d => { running += d.totalMin; cumValues.push(running / 60); });
+  const maxVal = Math.max(0.1, ...cumValues);
+
+  // Grid
+  ctx.strokeStyle = CHART_COLORS.grid; ctx.lineWidth = 1;
+  ctx.fillStyle = CHART_COLORS.text; ctx.font = '11px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + chartH * (1 - i / 4);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillText((maxVal * i / 4).toFixed(1) + '', padL - 6, y + 4);
+  }
+
+  // Fill area
+  const stepX = chartW / Math.max(1, daily.length - 1);
+  ctx.beginPath();
+  ctx.moveTo(padL, padT + chartH);
+  daily.forEach((_, i) => {
+    const x = padL + i * stepX;
+    const y = padT + chartH - (cumValues[i] / maxVal) * chartH;
+    ctx.lineTo(x, y);
+  });
+  ctx.lineTo(padL + (daily.length - 1) * stepX, padT + chartH);
+  ctx.closePath();
+  ctx.fillStyle = CHART_COLORS.lineFill;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = CHART_COLORS.line; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+  daily.forEach((_, i) => {
+    const x = padL + i * stepX;
+    const y = padT + chartH - (cumValues[i] / maxVal) * chartH;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Dots
+  daily.forEach((_, i) => {
+    if (daily[i].totalMin > 0) {
+      const x = padL + i * stepX;
+      const y = padT + chartH - (cumValues[i] / maxVal) * chartH;
+      ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.strokeStyle = CHART_COLORS.line; ctx.lineWidth = 2; ctx.stroke();
+    }
+  });
+
+  // X-axis labels
+  ctx.textAlign = 'center'; ctx.fillStyle = CHART_COLORS.text; ctx.font = '10px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif';
+  for (let i = 0; i < daily.length; i += 3) {
+    ctx.fillText(daily[i].day, padL + i * stepX, H - 6);
+  }
+}
+
+function drawWeeklyChart(canvas, daily) {
+  const W = 640, H = 200, padL = 40, padR = 16, padT = 16, padB = 36;
+  const ctx = setupCanvas(canvas, W, H);
+  const chartW = W - padL - padR, chartH = H - padT - padB;
+
+  const weeks = [
+    daily.slice(0, 7),
+    daily.slice(7, 14),
+    daily.slice(14, 21)
+  ];
+  const weekHours = weeks.map(w => +(w.reduce((s, d) => s + d.totalMin, 0) / 60).toFixed(1));
+  const maxVal = Math.max(0.1, ...weekHours);
+  const labels = ['萤火一周\n(5/11-5/17)', '萤火二周\n(5/18-5/24)', '萤火三周\n(5/25-5/31)'];
+  const barW = 80, gap = (chartW - barW * 3) / 4;
+
+  // Grid
+  ctx.strokeStyle = CHART_COLORS.grid; ctx.lineWidth = 1;
+  ctx.fillStyle = CHART_COLORS.text; ctx.font = '11px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + chartH * (1 - i / 4);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillText((maxVal * i / 4).toFixed(1) + '', padL - 6, y + 4);
+  }
+
+  // Bars
+  weekHours.forEach((h, i) => {
+    const x = padL + gap + i * (barW + gap);
+    const barH = h > 0 ? Math.max(2, (h / maxVal) * chartH) : 0;
+    const y = padT + chartH - barH;
+    const grad = ctx.createLinearGradient(x, y, x, padT + chartH);
+    grad.addColorStop(0, CHART_COLORS.week[i]); grad.addColorStop(1, CHART_COLORS.week[i] + '44');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, [6, 6, 0, 0]);
+    ctx.fill();
+
+    // Value label on top
+    ctx.fillStyle = CHART_COLORS.accent; ctx.font = 'bold 13px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(h + 'h', x + barW / 2, y - 6);
+
+    // Week label below
+    ctx.fillStyle = CHART_COLORS.text; ctx.font = '11px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif';
+    const labelLines = labels[i].split('\n');
+    labelLines.forEach((line, li) => {
+      ctx.fillText(line, x + barW / 2, H - 12 + li * 14);
+    });
+  });
+}
+
+// 扩展点击关闭统计弹窗
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'statsModal') closePomoStats();
+});
+
+(async function() {
+  await checkServer();
+  await render();
+  updateDashboard();
+  renderPomoLog();
+  const now = new Date();
+  const todayStr = `${now.getMonth()+1}月${now.getDate()}日`;
+  document.querySelectorAll('.day-block').forEach(b => { const h = b.querySelector('.day-label'); if (h && h.textContent.includes(todayStr)) b.classList.add('open'); });
+})();
+</script>
+</body>
+</html>
