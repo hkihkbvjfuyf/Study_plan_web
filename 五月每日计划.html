@@ -1294,14 +1294,29 @@ async function showPomoTaskSelector() {
 
 function startPomodoro(taskId, taskLabel) {
   document.getElementById('pomoModal').classList.remove('show');
-  pomoTask = taskLabel || '';
-  pomoStartTime = Date.now();
-  if (pomoTimer) clearInterval(pomoTimer);
-  pomoSeconds = randomWork(); pomoRunning = true; pomoPaused = false; pomoIsBreak = false;
-  const btn = document.getElementById('pomoBtn');
-  btn.textContent = '🍅'; btn.className = 'pomo-btn running';
-  btn.title = pomoTask || '自由学习';
-  updatePomoDisplay(); pomoTimer = setInterval(pomoTick, 1000);
+  const duration = randomWork();
+  const params = new URLSearchParams();
+  params.set('task', encodeURIComponent(taskLabel || '自由学习'));
+  if (taskId) params.set('taskId', taskId);
+  params.set('duration', duration);
+  window.location.href = 'pomodoro.html?' + params.toString();
+}
+
+async function processPendingPomoRecords() {
+  const raw = localStorage.getItem('pomo_pending_records');
+  if (!raw) return;
+  localStorage.removeItem('pomo_pending_records');
+  let records;
+  try { records = JSON.parse(raw); } catch(e) { return; }
+  const state = await getState();
+  for (const r of records) {
+    const today = new Date();
+    const key = `pomo_${today.getFullYear()}_${today.getMonth()+1}_${today.getDate()}`;
+    const existing = state[key] || [];
+    existing.push(r);
+    state[key] = existing;
+  }
+  await setState(state);
 }
 
 async function savePomoRecord(durationMin, task) {
@@ -1606,6 +1621,7 @@ document.addEventListener('click', (e) => {
   await checkServer();
   await render();
   updateDashboard();
+  await processPendingPomoRecords();
   renderPomoLog();
   const now = new Date();
   const todayStr = `${now.getMonth()+1}月${now.getDate()}日`;

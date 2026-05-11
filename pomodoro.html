@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍅 番茄钟 — 专注研习</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+
+  .gif-bg {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-size: cover; background-position: center; background-repeat: no-repeat;
+    z-index: 0;
+  }
+
+  .info-panel {
+    position: fixed; bottom: 28px; right: 24px; z-index: 2;
+    background: rgba(255, 253, 248, 0.88);
+    backdrop-filter: blur(14px);
+    border-radius: 18px;
+    padding: 18px 22px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    border: 1.5px solid rgba(143, 201, 169, 0.35);
+    font-family: "ZCOOL XiaoWei", "Microsoft YaHei", sans-serif;
+    color: #5a4a3a;
+    text-align: right;
+    max-width: 320px;
+  }
+
+  .task-label {
+    font-size: 0.78em;
+    color: #6b9e7d;
+    letter-spacing: 1px;
+    display: flex; align-items: center; justify-content: flex-end; gap: 5px;
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+  .task-label .icon { font-size: 1.1em; }
+
+  .status-tag {
+    display: inline-block; padding: 2px 10px; border-radius: 14px;
+    font-size: 0.65em; letter-spacing: 1px; margin-bottom: 8px;
+    background: linear-gradient(135deg, #8fc9a9, #6b9e7d);
+    color: #fff;
+  }
+  .status-tag.break { background: linear-gradient(135deg, #f4a460, #e8c97a); }
+
+  .timer-display {
+    font-size: 2.8em;
+    font-weight: 700;
+    color: #5a4a3a;
+    letter-spacing: 3px;
+    font-variant-numeric: tabular-nums;
+    font-family: "ZCOOL XiaoWei", "Courier New", monospace;
+    text-shadow: 0 1px 4px rgba(143, 201, 169, 0.25);
+    margin-bottom: 10px;
+  }
+  .timer-display.break { color: #f4a460; }
+  .timer-display.done { color: #8fc9a9; font-size: 1.2em; }
+
+  .btn-row {
+    display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;
+  }
+  .btn {
+    padding: 6px 18px; border-radius: 20px; border: none;
+    cursor: pointer; font-size: 0.72em; font-family: inherit;
+    letter-spacing: 1px; transition: all 0.2s;
+  }
+  .btn-pause {
+    background: linear-gradient(135deg, #8fc9a9, #6b9e7d);
+    color: #fff; box-shadow: 0 2px 8px rgba(143, 201, 169, 0.4);
+  }
+  .btn-pause:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(143, 201, 169, 0.5); }
+  .btn-pause.paused { background: linear-gradient(135deg, #f4a460, #e8c97a); }
+
+  .btn-exit {
+    background: rgba(90, 74, 58, 0.08);
+    color: #5a4a3a; border: 1px solid rgba(90, 74, 58, 0.2);
+  }
+  .btn-exit:hover { background: rgba(90, 74, 58, 0.16); transform: translateY(-1px); }
+
+  .btn-back {
+    background: linear-gradient(135deg, #ff7b42, #f4a460);
+    color: #fff; box-shadow: 0 2px 10px rgba(244, 164, 96, 0.4);
+    margin-top: 8px;
+  }
+  .btn-back:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(244, 164, 96, 0.5); }
+
+  .btn-switch-bg {
+    position: fixed; top: 16px; right: 20px; z-index: 3;
+    width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(255, 253, 248, 0.82);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(143, 201, 169, 0.35);
+    cursor: pointer; font-size: 1em;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    transition: transform 0.25s, box-shadow 0.25s;
+    display: flex; align-items: center; justify-content: center;
+    color: #5a4a3a;
+  }
+  .btn-switch-bg:hover { transform: scale(1.1) rotate(30deg); box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25); }
+
+  .gif-credit {
+    position: fixed; bottom: 10px; left: 16px;
+    color: rgba(255, 255, 255, 0.35); font-size: 0.6em;
+    z-index: 2; font-family: "ZCOOL XiaoWei", "Microsoft YaHei", sans-serif;
+  }
+
+  @media (max-width: 600px) {
+    .info-panel { bottom: 16px; right: 10px; padding: 14px 16px; max-width: 260px; }
+    .timer-display { font-size: 2.2em; }
+    .btn { padding: 5px 14px; font-size: 0.68em; }
+    .task-label { font-size: 0.7em; }
+  }
+</style>
+</head>
+<body>
+
+<div class="gif-bg" id="gifBg"></div>
+<button class="btn-switch-bg" onclick="switchBg()" title="换一张背景">🔄</button>
+
+<div class="info-panel">
+  <div class="task-label">
+    <span class="icon">📖</span>
+    <span id="taskName">自由学习</span>
+  </div>
+  <div class="status-tag" id="statusTag">专注中</div>
+  <div class="timer-display" id="timerDisplay">45:00</div>
+  <div class="btn-row" id="btnRow">
+    <button class="btn btn-pause" id="btnPause" onclick="togglePause()">⏸️ 暂停</button>
+    <button class="btn btn-exit" onclick="exitTimer()">✕ 退出</button>
+  </div>
+  <div class="btn-row" id="doneActions" style="display:none;">
+    <button class="btn btn-back" onclick="goBack()">← 返回研习室</button>
+  </div>
+</div>
+
+<div class="gif-credit" id="gifCredit"></div>
+
+<script>
+const GIFS = [
+  "12.gif", "13-2感觉更好.gif", "14.gif", "18.gif", "20.gif",
+  "25-2.gif", "26.gif", "30.gif",
+  "4-1-15-98.gif", "4-1-15.gif", "4-1-30-98.gif", "4-1-30.gif",
+  "4-2-15-98.gif", "4-2-15.gif", "4-2-30-98.gif", "4-2-30.gif",
+  "4-3-15-98.gif", "4-3-15.gif", "4-3-30-98.gif", "4-3-30.gif",
+  "4-4-15-98.gif", "4-4-15.gif", "4-4-30-98.gif", "4-4-30.gif",
+  "6-1.gif", "6-2.gif", "7-1.gif", "8.gif"
+];
+
+const POMO_BREAK = 5 * 60;
+
+function getParam(name) {
+  const url = new URL(window.location.href);
+  return url.searchParams.get(name) || '';
+}
+
+function pickRandomGif() {
+  const idx = Math.floor(Math.random() * GIFS.length);
+  return GIFS[idx];
+}
+
+const selectedGif = pickRandomGif();
+document.getElementById('gifBg').style.backgroundImage = `url('source/gif/${encodeURI(selectedGif)}')`;
+document.getElementById('gifCredit').textContent = selectedGif;
+
+let currentGif = selectedGif;
+
+function switchBg() {
+  let next;
+  do { next = GIFS[Math.floor(Math.random() * GIFS.length)]; } while (next === currentGif && GIFS.length > 1);
+  currentGif = next;
+  document.getElementById('gifBg').style.backgroundImage = `url('source/gif/${encodeURI(next)}')`;
+  document.getElementById('gifCredit').textContent = next;
+}
+
+const taskName = decodeURIComponent(getParam('task') || '自由学习');
+const taskId = getParam('taskId') || '';
+const initialDuration = parseInt(getParam('duration')) || (40 + Math.floor(Math.random() * 31)) * 60;
+
+document.getElementById('taskName').textContent = taskName;
+document.title = `🍅 ${taskName.substring(0, 12)} — 番茄钟`;
+
+let totalSeconds = initialDuration;
+let isBreak = false;
+let isPaused = false;
+let isDone = false;
+let timerInterval = null;
+const startTime = Date.now();
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function updateDisplay() {
+  document.getElementById('timerDisplay').textContent = formatTime(totalSeconds);
+}
+
+function playDing() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [523.25, 659.25, 783.99].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.15 + 0.4);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.15);
+      osc.stop(ctx.currentTime + i * 0.15 + 0.4);
+    });
+  } catch(e) { /* audio not available */ }
+}
+
+function tick() {
+  if (isPaused || isDone) return;
+  totalSeconds--;
+  updateDisplay();
+
+  if (totalSeconds <= 0) {
+    clearInterval(timerInterval);
+    playDing();
+
+    if (!isBreak) {
+      // Work session complete
+      const elapsedMin = Math.round((Date.now() - startTime) / 60000);
+      saveRecord(elapsedMin);
+
+      // Start break
+      isBreak = true;
+      totalSeconds = POMO_BREAK;
+      updateDisplay();
+      document.getElementById('statusTag').textContent = '休息时间';
+      document.getElementById('statusTag').className = 'status-tag break';
+      document.getElementById('timerDisplay').className = 'timer-display break';
+      document.getElementById('taskName').textContent = '☕ 休息一下~';
+      document.getElementById('btnPause').textContent = '⏸️ 暂停';
+      document.getElementById('btnPause').className = 'btn btn-pause';
+      isPaused = false;
+      timerInterval = setInterval(tick, 1000);
+      updateDisplay();
+    } else {
+      // Break complete
+      isDone = true;
+      document.getElementById('statusTag').textContent = '完成';
+      document.getElementById('statusTag').className = 'status-tag';
+      document.getElementById('timerDisplay').textContent = '✨';
+      document.getElementById('timerDisplay').className = 'timer-display done';
+      document.getElementById('taskName').textContent = '休息结束，继续加油！';
+      document.getElementById('btnRow').style.display = 'none';
+      document.getElementById('doneActions').style.display = 'block';
+    }
+  }
+}
+
+function saveRecord(durationMin) {
+  const record = {
+    taskId: taskId,
+    task: taskName,
+    duration: durationMin,
+    time: `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`,
+    completed: true
+  };
+  const pending = JSON.parse(localStorage.getItem('pomo_pending_records') || '[]');
+  pending.push(record);
+  localStorage.setItem('pomo_pending_records', JSON.stringify(pending));
+}
+
+function togglePause() {
+  if (isDone) return;
+  isPaused = !isPaused;
+  const btn = document.getElementById('btnPause');
+  if (isPaused) {
+    btn.textContent = '▶️ 继续';
+    btn.className = 'btn btn-pause paused';
+  } else {
+    btn.textContent = '⏸️ 暂停';
+    btn.className = 'btn btn-pause';
+  }
+}
+
+function exitTimer() {
+  if (!isDone && !isBreak && totalSeconds < initialDuration) {
+    const elapsedMin = Math.round((Date.now() - startTime) / 60000);
+    if (elapsedMin >= 1) {
+      saveRecord(elapsedMin);
+    }
+  }
+  if (timerInterval) clearInterval(timerInterval);
+  window.location.href = '五月每日计划.html';
+}
+
+function goBack() {
+  if (timerInterval) clearInterval(timerInterval);
+  window.location.href = '五月每日计划.html';
+}
+
+// Start
+updateDisplay();
+timerInterval = setInterval(tick, 1000);
+
+// Warn before leaving
+window.addEventListener('beforeunload', () => {
+  if (!isDone && !isBreak && totalSeconds < initialDuration) {
+    const elapsedMin = Math.round((Date.now() - startTime) / 60000);
+    if (elapsedMin >= 1) {
+      saveRecord(elapsedMin);
+    }
+  }
+});
+</script>
+
+</body>
+</html>
