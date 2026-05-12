@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>✦ 流萤研习室 — 将星海点燃 ✦</title>
+<title>流萤研习室 — 将星海点燃</title>
 <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -336,6 +336,28 @@
   .notes-area:focus { border-color: #8fc9a9; outline: none; }
   .notes-area.visible { display: block; }
 
+  /* 任务级备注 */
+  .task-note-btn {
+    font-size: 0.7em; cursor: pointer; margin-left: 6px; opacity: 0;
+    transition: opacity 0.25s; pointer-events: none;
+    text-decoration: none; display: inline-block;
+  }
+  .task-note-btn.show { opacity: 0.55; pointer-events: auto; }
+  .task-note-btn.show:hover { opacity: 1; }
+  .task-note-input {
+    display: none; width: calc(100% - 24px); margin: 2px 0 6px 24px; padding: 5px 10px;
+    border: 1px solid var(--border); border-radius: 10px; font-size: 0.7em;
+    font-family: inherit; background: rgba(255,253,248,0.7); color: var(--text);
+    resize: vertical; min-height: 28px;
+  }
+  .task-note-input:focus { border-color: #8fc9a9; outline: none; }
+  .task-note-input.visible { display: block; }
+  .task-note-indicator {
+    display: none; font-size: 0.62em; color: #8fc9a9; margin-left: 6px;
+    white-space: nowrap; font-style: italic; text-decoration: none;
+  }
+  .task-note-indicator.show { display: inline; }
+
   .heatmap-x { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: var(--danger); font-size: 1.1em; font-weight: 700; pointer-events: none; }
 
   .container { max-width: 1200px; margin: 0 auto; padding: 16px 20px; position: relative; z-index: 1; }
@@ -360,6 +382,18 @@
   .stats-chart-wrap h4 { font-size: 0.82em; color: var(--sage); margin-bottom: 6px; letter-spacing: 1px; }
   .stats-chart-wrap canvas { width: 100%; height: auto; border-radius: 12px; background: rgba(250,246,240,0.5); display: block; }
   .stats-no-data { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: 0.9em; }
+
+  /* 番茄记录表格 */
+  .pomo-records-wrap { margin: 16px 0; }
+  .pomo-records-wrap h4 { font-size: 0.82em; color: var(--sage); margin-bottom: 8px; letter-spacing: 1px; }
+  .pomo-records-table { width: 100%; border-collapse: collapse; font-size: 0.72em; }
+  .pomo-records-table th { background: rgba(143,201,169,0.12); color: var(--sage); padding: 8px 10px; text-align: left; font-weight: 600; letter-spacing: 1px; }
+  .pomo-records-table td { padding: 7px 10px; border-bottom: 1px solid rgba(143,201,169,0.12); color: var(--text); }
+  .pomo-records-table tr:hover td { background: rgba(143,201,169,0.04); }
+  .pomo-records-table .pr-date { white-space: nowrap; color: var(--sage); font-weight: 600; }
+  .pomo-records-table .pr-time { white-space: nowrap; color: var(--text-dim); }
+  .pomo-records-table .pr-task { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pomo-records-table .pr-dur { white-space: nowrap; text-align: right; font-weight: 600; color: var(--amber); }
 
   /* 番茄统计按钮 */
   .pomo-stats-btn { font-size: 0.58em; color: var(--sage); cursor: pointer; text-align: center; text-decoration: underline; transition: color 0.2s; background: none; border: none; font-family: inherit; }
@@ -414,10 +448,6 @@
   }
   .pomo-task-option:hover { background: #f8faf5; border-color: #8fc9a9; }
   .pomo-task-option.skip { color: var(--text-dim); font-style: italic; text-align: center; }
-  .pomo-log { margin-top: 6px; max-height: 100px; overflow-y: auto; }
-  .pomo-log-entry { font-size: 0.58em; color: var(--text-dim); padding: 2px 0; display: flex; justify-content: space-between; gap: 6px; }
-  .pomo-log-entry .pl-task { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pomo-log-entry .pl-time { white-space: nowrap; color: var(--sage); }
 
   @media (max-width: 900px) {
     .weeks-grid { grid-template-columns: 1fr; }
@@ -438,6 +468,150 @@
     .week-compare { gap: 8px; }
     .week-compare .w-bar-outer { height: 60px; }
   }
+  /* ===== 日记弹窗 ===== */
+  .diary-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(90,74,58,0.4); backdrop-filter: blur(6px); z-index: 9999; justify-content: center; align-items: center; }
+  .diary-modal-overlay.show { display: flex; }
+  .diary-modal {
+    background: var(--white); border-radius: 20px; padding: 24px 28px; max-width: 480px; width: 92%;
+    max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); border: 1.5px solid var(--border);
+    position: relative;
+  }
+  .diary-modal h3 { color: var(--sage); margin-bottom: 4px; font-size: 1em; letter-spacing: 1px; display: flex; align-items: center; justify-content: space-between; }
+  .diary-date-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .diary-date-nav .date-label { font-size: 0.85em; font-weight: 600; color: var(--text); min-width: 90px; text-align: center; }
+  .diary-date-nav button { background: none; border: 1px solid var(--border); border-radius: 50%; width: 28px; height: 28px; cursor: pointer; color: var(--sage); font-size: 1em; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+  .diary-date-nav button:hover { background: rgba(143,201,169,0.1); border-color: var(--sage); }
+  .diary-date-nav button:disabled { opacity: 0.3; cursor: default; }
+  .diary-section { margin-bottom: 14px; }
+  .diary-section .section-label { font-size: 0.75em; color: var(--sage); margin-bottom: 6px; font-weight: 600; letter-spacing: 1px; }
+  .diary-options { display: flex; flex-wrap: wrap; gap: 6px; }
+  .diary-opt {
+    padding: 6px 14px; border-radius: 18px; border: 1.5px solid #e8e0d5;
+    background: var(--white); cursor: pointer; font-size: 0.75em; font-family: inherit;
+    color: var(--text); transition: all 0.2s; white-space: nowrap;
+  }
+  .diary-opt:hover { border-color: var(--mint); background: rgba(143,201,169,0.06); }
+  .diary-opt.selected { border-color: var(--mint); background: rgba(143,201,169,0.15); color: var(--sage); font-weight: 600; box-shadow: 0 2px 8px rgba(143,201,169,0.2); }
+  .diary-history-item {
+    padding: 8px 12px; border-radius: 12px; background: rgba(143,201,169,0.05);
+    margin-bottom: 6px; font-size: 0.72em; line-height: 1.6;
+  }
+  .diary-history-item .h-date { font-weight: 600; color: var(--sage); margin-bottom: 2px; }
+  .diary-history-item .h-tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.9em; background: rgba(143,201,169,0.12); color: var(--sage); margin: 1px 3px 1px 0; }
+  .diary-section-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .diary-tab {
+    padding: 5px 16px; border-radius: 16px; border: 1.5px solid #e8e0d5;
+    background: var(--white); cursor: pointer; font-size: 0.75em; font-family: inherit;
+    color: var(--text-dim); transition: all 0.2s;
+  }
+  .diary-tab.active { border-color: var(--mint); background: rgba(143,201,169,0.12); color: var(--sage); font-weight: 600; }
+  .diary-tab:hover { border-color: var(--mint); }
+  .diary-save-btn {
+    display: block; width: 100%; padding: 10px; border-radius: 20px; border: none;
+    background: linear-gradient(135deg, #8fc9a9, #f4a460); color: #fff;
+    cursor: pointer; font-size: 0.82em; font-family: inherit; font-weight: 600;
+    letter-spacing: 1px; box-shadow: 0 4px 12px rgba(143,201,169,0.3);
+    transition: all 0.3s; margin-top: 8px;
+  }
+  .diary-save-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(143,201,169,0.4); }
+  .diary-saved-hint { text-align: center; font-size: 0.68em; color: var(--sage); margin-top: 6px; opacity: 0; transition: opacity 0.3s; }
+  .diary-saved-hint.show { opacity: 1; }
+
+  /* ===== 每日总结 ===== */
+  .summary-card {
+    background: linear-gradient(135deg, #faf6f0, #f0f4ec);
+    border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 16px 18px; margin-bottom: 10px;
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+  .summary-card .s-date { font-size: 0.82em; font-weight: 700; color: var(--sage); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .summary-card .s-date .s-badge { font-size: 0.65em; padding: 2px 10px; border-radius: 12px; background: rgba(143,201,169,0.15); color: var(--sage); font-weight: 400; }
+  .summary-card .s-details { font-size: 0.75em; color: var(--text); line-height: 1.8; margin-bottom: 8px; }
+  .summary-card .s-details .s-stat { display: inline-block; margin-right: 12px; white-space: nowrap; }
+  .summary-card .s-details .s-stat .s-val { font-weight: 700; color: var(--amber); }
+  .summary-card .s-overall {
+    font-size: 0.78em; color: var(--sage); line-height: 1.6;
+    padding: 10px 14px; background: rgba(143,201,169,0.08);
+    border-radius: 12px; border-left: 3px solid var(--mint);
+  }
+  .summary-generate-btn {
+    display: block; width: 100%; padding: 10px; border-radius: 20px; border: 2px dashed var(--mint);
+    background: rgba(143,201,169,0.06); color: var(--sage); cursor: pointer;
+    font-size: 0.8em; font-family: inherit; font-weight: 600;
+    letter-spacing: 1px; transition: all 0.3s; margin-bottom: 14px;
+  }
+  .summary-generate-btn:hover { background: rgba(143,201,169,0.14); border-color: var(--sage); }
+  .summary-empty { text-align: center; color: var(--text-dim); padding: 30px; font-size: 0.82em; }
+  .summary-rate-bar {
+    display: flex; align-items: center; gap: 8px; margin: 6px 0;
+    font-size: 0.73em; color: var(--text);
+  }
+  .summary-rate-bar .rate-outer {
+    flex: 1; height: 8px; background: #e8e0d5; border-radius: 8px; overflow: hidden;
+  }
+  .summary-rate-bar .rate-inner {
+    height: 100%; border-radius: 8px; transition: width 0.5s;
+  }
+  .summary-rate-bar .rate-pct { font-weight: 700; min-width: 36px; text-align: right; }
+  .summary-stars { color: var(--amber); letter-spacing: 2px; }
+
+  /* ===== 专注监控 ===== */
+  .focus-card {
+    background: var(--card); border-radius: 18px; padding: 18px 20px;
+    box-shadow: 0 4px 16px var(--shadow);
+    border: 1.5px solid var(--border); transition: transform 0.3s;
+  }
+  .focus-card:hover { transform: translateY(-2px); }
+  .focus-card h3 { font-size: 0.9em; color: var(--sage); margin-bottom: 12px; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+  .focus-card h3 .focus-status { width: 8px; height: 8px; border-radius: 50%; background: #8fc9a9; animation: focusPulse 1.5s ease-in-out infinite; }
+  .focus-card h3 .focus-status.off { background: #ccc; animation: none; }
+  @keyframes focusPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .focus-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; margin-bottom: 10px; }
+  .focus-stats .fs-item { padding: 8px 4px; border-radius: 12px; background: rgba(143,201,169,0.05); }
+  .focus-stats .fs-val { font-size: 1.4em; font-weight: 700; }
+  .focus-stats .fs-label { font-size: 0.62em; color: var(--text-dim); margin-top: 2px; }
+  .focus-stats .fs-distraction .fs-val { color: #e8734a; }
+  .focus-stats .fs-study .fs-val { color: var(--sage); }
+  .focus-stats .fs-rate .fs-val { color: var(--amber); }
+  .focus-incidents { max-height: 120px; overflow-y: auto; font-size: 0.65em; }
+  .focus-incidents .fi-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(143,201,169,0.1); color: var(--text-dim); }
+  .focus-incidents .fi-row .fi-time { white-space: nowrap; margin-right: 8px; }
+  .focus-incidents .fi-row .fi-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .focus-incidents .fi-row .fi-dur { white-space: nowrap; color: #e8734a; margin-left: 8px; }
+  .focus-empty { text-align: center; color: var(--sage); padding: 8px; font-size: 0.7em; }
+  .focus-offline { text-align: center; color: var(--text-dim); padding: 10px; font-size: 0.68em; }
+  .focus-offline .focus-start-hint { margin-top: 6px; font-size: 0.9em; color: var(--sage); background: rgba(143,201,169,0.08); padding: 6px 12px; border-radius: 10px; }
+  .focus-card { cursor: pointer; }
+
+  /* ===== 专注监控弹窗 ===== */
+  .focus-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(90,74,58,0.4); backdrop-filter: blur(6px); z-index: 9999; justify-content: center; align-items: flex-start; padding-top: 30px; }
+  .focus-modal-overlay.show { display: flex; }
+  .focus-modal-box { background: var(--white); border-radius: 20px; padding: 24px 28px; max-width: 720px; width: 94%; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); border: 1.5px solid var(--border); }
+  .focus-modal-box h3 { color: var(--sage); margin-bottom: 6px; font-size: 1.05em; }
+  .focus-modal-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .focus-modal-tab { padding: 5px 14px; border-radius: 16px; border: 1.5px solid #e8e0d5; background: var(--white); cursor: pointer; font-size: 0.72em; font-family: inherit; color: var(--text-dim); transition: all 0.2s; }
+  .focus-modal-tab.active { border-color: var(--mint); background: rgba(143,201,169,0.12); color: var(--sage); font-weight: 600; }
+  .focus-modal-tab:hover { border-color: var(--mint); }
+  .focus-timeline { position: relative; padding-left: 20px; margin: 10px 0; border-left: 2px solid #e8e0d5; }
+  .focus-timeline-item { margin-bottom: 8px; position: relative; font-size: 0.72em; }
+  .focus-timeline-item::before { content: ''; position: absolute; left: -26px; top: 4px; width: 10px; height: 10px; border-radius: 50%; }
+  .focus-timeline-item.study::before { background: #8fc9a9; }
+  .focus-timeline-item.distraction::before { background: #e8734a; }
+  .focus-timeline-item.idle::before { background: #ccc; }
+  .focus-timeline-item .tl-time { color: var(--text-dim); margin-right: 8px; }
+  .focus-timeline-item .tl-title { color: var(--text); }
+  .focus-config-section { margin-bottom: 16px; }
+  .focus-config-section h4 { font-size: 0.8em; color: var(--sage); margin-bottom: 6px; }
+  .focus-config-list { max-height: 200px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .focus-config-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 14px; font-size: 0.68em; }
+  .focus-config-tag.black { background: rgba(232,115,74,0.1); color: #c0623a; border: 1px solid rgba(232,115,74,0.2); }
+  .focus-config-tag.white { background: rgba(143,201,169,0.1); color: #5a8a6a; border: 1px solid rgba(143,201,169,0.2); }
+  .focus-config-tag .tag-del { cursor: pointer; font-weight: 700; margin-left: 2px; opacity: 0.5; }
+  .focus-config-tag .tag-del:hover { opacity: 1; }
+  .focus-config-input-row { display: flex; gap: 6px; }
+  .focus-config-input-row input { flex: 1; padding: 6px 10px; border-radius: 10px; border: 1.5px solid #e8e0d5; font-size: 0.72em; font-family: inherit; }
+  .focus-config-input-row input:focus { border-color: var(--mint); outline: none; }
+  .focus-config-input-row button { padding: 6px 14px; border-radius: 10px; border: none; cursor: pointer; font-size: 0.72em; font-family: inherit; background: var(--mint); color: #fff; }
 </style>
 </head>
 <body>
@@ -497,6 +671,22 @@
 </div>
 
 <div class="container dashboard" id="dashboard" style="padding-top:8px;">
+
+  <!-- 专注监控卡片 -->
+  <div class="focus-card" style="margin-bottom:16px;" id="focusCard" onclick="showFocusDetail()" title="点击查看详细分析">
+    <h3><span class="focus-status off" id="focusStatusDot"></span> 专注监控 <span style="font-size:0.7em;color:var(--text-dim);font-weight:400;" id="focusUpdated"></span></h3>
+    <div class="focus-stats">
+      <div class="fs-item fs-study"><div class="fs-val" id="fsStudy">--</div><div class="fs-label">学习时长</div></div>
+      <div class="fs-item fs-distraction"><div class="fs-val" id="fsDistraction">--</div><div class="fs-label">摸鱼时长</div></div>
+      <div class="fs-item fs-rate"><div class="fs-val" id="fsRate">--</div><div class="fs-label">专注率</div></div>
+    </div>
+    <div class="focus-incidents" id="focusIncidents">
+      <div class="focus-offline">
+        监控未启动<br>
+        <span class="focus-start-hint">运行 python focus_monitor.py 启动监控</span>
+      </div>
+    </div>
+  </div>
   <div class="stat-cards">
     <div class="stat-card stat-streak">
       <div class="stat-value" id="streakCount">0</div>
@@ -540,7 +730,7 @@
         <span class="box" style="background:#f4b878"></span>
         <span class="box" style="background:#ff7b42"></span>
         <span>多</span>
-        <span style="margin-left:12px">✗</span><span class="box" style="background:#f0d0d0"></span>
+        <span style="margin-left:12px">×</span><span class="box" style="background:#f0d0d0"></span>
         <span>遗漏</span>
       </div>
     </div>
@@ -581,16 +771,26 @@
   <div class="pomo-modal" id="pomoModal">
     <h4>选择今日任务</h4>
     <div id="pomoTaskList"></div>
-    <button class="pomo-task-option skip" onclick="startPomodoro()">✨ 自由学习（不指定任务）</button>
+    <button class="pomo-task-option skip" onclick="startPomodoro()">自由学习（不指定任务）</button>
   </div>
-  <div class="pomo-log" id="pomoLog"></div>
-  <button class="pomo-stats-btn" onclick="showPomoStats()">📊 番茄统计</button>
+  <button class="pomo-stats-btn" onclick="showPomoStats()">番茄统计</button>
+</div>
+
+<!-- 专注监控弹窗 -->
+<div class="focus-modal-overlay" id="focusModalOverlay">
+  <div class="focus-modal-box" id="focusModalContent"></div>
+</div>
+
+<!-- 日记弹窗 -->
+<div class="diary-modal-overlay" id="diaryOverlay">
+  <div class="diary-modal" id="diaryModal"></div>
 </div>
 
 <div class="bottom-bar">
   <button class="btn-expand" onclick="expandAll()">展开全部</button>
   <button class="btn-collapse" onclick="collapseAll()">收起全部</button>
   <button class="btn-reset" onclick="resetAll()">重置进度</button>
+  <button class="btn-collapse" onclick="openDiary()" style="background:linear-gradient(135deg,#b8e0cc,#8fc9a9);color:#fff;border:none;">写日记</button>
 </div>
 
 <script>
@@ -615,169 +815,172 @@
 const weeks = [
   {
     title: "第一周（5.11 – 5.17）",
-    subtitle: "⚡ 概率论 Ch4→Ch7 加速通关 + 自测",
+    subtitle: "概率论 Ch4→Ch6 稳步通关 + 自测",
     days: [
       { date: "5月11日", label: "周一", tag: "plus", tagText: "加速",
         tasks: [
           ["math","数","概率论 Ch4 数学期望 + 方差/协方差 — 一口气过完"],
           ["math","高数","高数：极限计算快练 + 等价替换（10min）"],
           ["eng","英","六级听力1套 + 阅读1篇精读 + 单词50个"],
-          ["pro","专","机械设计 Ch1 通读"],
+          ["pro","专","机械原理 Ch1 绪论 + Ch2 机构结构分析"],
         ]},
       { date: "5月12日", label: "周二", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","概率论 Ch5 大数定律 + 中心极限定理 — 视频+教材+课后题"],
-          ["math","高数","高数：导数公式默写 + 参数求导1道题"],
-          ["eng","英","六级听力1套 + 阅读1篇精读 + 单词50个"],
-          ["pro","专","机械设计 Ch2 机械零件强度"],
-        ]},
-      { date: "5月13日", label: "周三", tag: "plus", tagText: "加速",
-        tasks: [
-          ["math","数","概率论 Ch6 数理统计 + 抽样分布(χ²/t/F) — 视频+课后题"],
-          ["math","高数","高数：中值定理1道证明题 + 泰勒展开练习"],
-          ["eng","英","六级听力1套 + 翻译1篇 + 单词50个"],
-          ["pro","专","机械原理 Ch1 绪论 + Ch2 机构结构分析"],
-        ]},
-      { date: "5月14日", label: "周四", tag: "plus", tagText: "加速",
-        tasks: [
-          ["math","数","概率论 Ch7 点估计(矩估计+极大似然) + 区间估计 — 视频+教材"],
-          ["math","高数","高数：不定积分公式默写 + 换元1道题"],
+          ["math","数","概率论 Ch4 收尾 — 课后习题 + 错题整理"],
+          ["math","高数","高数：导数计算题2道 + 参数求导1道题"],
           ["eng","英","六级听力1套 + 阅读1篇精读 + 单词50个"],
           ["pro","专","机械原理 Ch2 完成 + 自由度计算题2道"],
         ]},
+      { date: "5月13日", label: "周三", tag: "plus", tagText: "加速",
+        tasks: [
+          ["math","数","概率论 Ch5 大数定律 + 中心极限定理（day1 视频+教材）"],
+          ["math","高数","高数：中值定理1道证明题 + 泰勒展开练习"],
+          ["eng","英","六级听力1套 + 翻译1篇 + 单词50个"],
+          ["pro","专","机械原理 Ch3 平面机构运动分析"],
+        ]},
+      { date: "5月14日", label: "周四", tag: "plus", tagText: "加速",
+        tasks: [
+          ["math","数","概率论 Ch5 收尾 — 课后题 + 核心定理默写"],
+          ["math","高数","高数：不定积分计算题2道 + 换元1道题"],
+          ["eng","英","六级听力1套 + 阅读1篇精读 + 单词50个"],
+          ["pro","专","机械原理 Ch3 完成 + 运动分析计算题2道"],
+        ]},
       { date: "5月15日", label: "周五", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","概率论 Ch7 课后习题收尾 + Ch4-Ch7综合习题"],
+          ["math","数","概率论 Ch6 数理统计 + 抽样分布(χ²/t/F)（day1 视频+教材）"],
           ["math","高数","高数：定积分计算1道题 + 反常积分审敛"],
           ["eng","英","六级阅读2篇精读 + 单词50个"],
-          ["pro","专","机械设计 Ch3 摩擦磨损润滑"],
+          ["pro","专","机械原理 Ch4 平面机构力分析"],
         ]},
       { date: "5月16日", label: "周六", tag: "plus", tagText: "冲刺",
         tasks: [
-          ["math","数","概率论全书框架整理 + 核心公式默写 + 模拟自测(计时)"],
+          ["math","数","概率论 Ch6 收尾 — 课后题 + Ch4-Ch6综合习题"],
           ["math","高数","高数：本周高数薄弱点速通 + 错题复习"],
           ["eng","英","六级听力1套 + 作文1篇 + 本周生词大复习"],
-          ["pro","专","机械设计 Ch4 螺纹连接"],
-          ["review","复盘","周复盘 15min — 概率论通关检查"],
+          ["pro","专","机械原理 Ch4 完成 + 力分析计算题2道"],
+          ["review","复盘","周复盘 15min — 概率论进度检查"],
         ]},
       { date: "5月17日", label: "周日", tag: "light", tagText: "轻量",
         tasks: [
-          ["math","数","概率论自测复盘 + 错题本整理"],
-          ["math","高数","高数：微分方程公式扫一眼"],
+          ["math","数","概率论 Ch4-Ch6 错题本整理"],
+          ["math","高数","高数：微分方程计算题1道"],
           ["eng","英","六级听力1套 + 作文模板整理"],
+          ["pro","专","机械原理 Ch1-Ch4 回顾（翻翻教材）"],
           ["review","复盘","休息调整 / 补未完成任务"],
         ]},
     ]
   },
   {
     title: "第二周（5.18 – 5.24）",
-    subtitle: "⚡ 线代 Ch1→Ch6 全速推进",
+    subtitle: "概率论 Ch7 收尾 + 线代 Ch1→Ch4 推进",
     days: [
       { date: "5月18日", label: "周一", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","线代 Ch1 行列式 — 视频+教材+课后题（一天一章）"],
+          ["math","数","概率论 Ch7 点估计+区间估计（day1 视频+教材）"],
           ["math","高数","高数：多元偏导数计算 + 全微分1道题"],
           ["eng","英","六级真题阅读2篇 + 听力1套 + 单词50个"],
-          ["pro","专","机械设计 Ch5 带传动 + Ch6 链传动"],
+          ["pro","专","机械原理 自由度计算专项练习2道"],
         ]},
       { date: "5月19日", label: "周二", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","线代 Ch2 矩阵 — 视频+教材+课后题"],
+          ["math","数","概率论 Ch7 收尾 — 课后习题 + 全书框架整理"],
           ["math","高数","高数：二重积分计算1道题 + 交换积分次序"],
           ["eng","英","六级翻译1篇 + 阅读1篇 + 单词50个"],
-          ["pro","专","机械原理 Ch3 平面机构运动分析"],
+          ["pro","专","机械原理 运动分析专项练习2道"],
         ]},
       { date: "5月20日", label: "周三", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","线代 Ch3 向量 — 视频+教材+课后题（线性相关性是重点）"],
+          ["math","数","线代 Ch1 行列式 — 视频+教材+课后题"],
           ["math","高数","高数：无穷级数审敛练习 + 幂级数求和1道题"],
           ["eng","英","六级听力1套 + 作文1篇 + 单词50个"],
-          ["pro","专","机械原理 Ch4 平面机构力分析"],
+          ["pro","专","机械原理 力分析专项练习2道"],
         ]},
       { date: "5月21日", label: "周四", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","线代 Ch4 线性方程组 — 解的结构+习题（线代核心章）"],
+          ["math","数","线代 Ch2 矩阵 — 视频+教材+课后题"],
           ["math","高数","高数：极限/导数/积分综合题1道（保持手感）"],
           ["eng","英","六级真题阅读2篇 + 听力1套 + 单词50个"],
-          ["pro","专","机械设计 Ch7 齿轮传动（一半）"],
+          ["pro","专","机械原理 Ch3+Ch4 综合练习"],
         ]},
       { date: "5月22日", label: "周五", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","线代 Ch5 特征值与特征向量 — 视频+教材+课后题"],
+          ["math","数","线代 Ch3 向量 — 视频+教材+课后题（线性相关性是重点）"],
           ["math","高数","高数：微分方程求解1道题 + 中值定理证明复习"],
           ["eng","英","六级翻译1篇 + 阅读1篇 + 单词50个"],
-          ["pro","专","机械设计 Ch7 齿轮传动完成"],
+          ["pro","专","机械原理 全书重点题 + 整理思维导图"],
         ]},
       { date: "5月23日", label: "周六", tag: "plus", tagText: "冲刺",
         tasks: [
-          ["math","数","线代 Ch6 二次型 — 视频+教材 + 线代全书框架整理"],
-          ["math","高数","高数：本周高数薄弱点速通 + 公式默写"],
+          ["math","数","线代 Ch4 线性方程组 — 解的结构+习题（线代核心章）"],
+          ["math","高数","高数：本周高数薄弱点速通 + 专项练习题2道"],
           ["eng","英","六级完整真题1套(限时模拟) + 批改"],
-          ["pro","专","机械原理 Ch3+Ch4 综合练习"],
-          ["review","复盘","周复盘 15min — 线代进度检查"],
+          ["pro","专","机械原理 自测模拟题1套 + 错题整理"],
+          ["review","复盘","周复盘 15min — 概率论收尾 + 线代进度检查"],
         ]},
       { date: "5月24日", label: "周日", tag: "light", tagText: "轻量",
         tasks: [
-          ["math","数","线代自测 + 错题本整理"],
-          ["math","高数","高数：翻翻公式本"],
+          ["math","数","线代 Ch1-Ch4 错题本整理"],
+          ["math","高数","高数：重做本周错题1道"],
           ["eng","英","六级听力1套精听 + 生词复习"],
+          ["pro","专","机械原理 补漏 + 回顾薄弱点"],
           ["review","复盘","休息调整 / 补未完成任务"],
         ]},
     ]
   },
   {
     title: "第三周（5.25 – 5.31）",
-    subtitle: "⚡ 数一综合强化 + 六月蓄势",
+    subtitle: "线代 Ch5→Ch6 收尾 + 数一综合强化 + 六月蓄势",
     days: [
       { date: "5月25日", label: "周一", tag: "plus", tagText: "强化",
         tasks: [
-          ["math","数","线代错题补漏 + 高数极限/导数/积分综合练习"],
+          ["math","数","线代 Ch5 特征值与特征向量 — 视频+教材+课后题"],
           ["math","高数","高数：做一套高数选填专项题(计时20min)"],
           ["eng","英","六级听力1套 + 阅读2篇精读 + 单词50个"],
-          ["pro","专","机械设计 Ch3-7 复习划重点"],
+          ["pro","专","机械设计 Ch1 通读 + Ch2 机械零件强度"],
         ]},
       { date: "5月26日", label: "周二", tag: "plus", tagText: "强化",
         tasks: [
-          ["math","数","线代错题补漏 + 高数微分方程/中值定理综合练习"],
+          ["math","数","线代 Ch6 二次型 — 视频+教材 + 线代全书框架整理"],
           ["math","高数","高数：多元微分/二重积分综合题1道"],
           ["eng","英","六级翻译1篇 + 作文模板整理 + 单词50个"],
-          ["pro","专","机械原理 Ch1-4 复习划重点"],
+          ["pro","专","机械设计 Ch3 摩擦磨损润滑"],
         ]},
       { date: "5月27日", label: "周三", tag: "plus", tagText: "强化",
         tasks: [
-          ["math","数","概率论错题补漏 + 高数无穷级数专题"],
+          ["math","数","概率论错题补漏 + 线代错题综合复习"],
           ["math","高数","高数：级数审敛+幂级数求和综合练习"],
           ["eng","英","六级真题完整模拟(含作文,严格计时) + 批改"],
-          ["pro","专","专业课公式/简答题开始整理笔记本"],
+          ["pro","专","机械设计 Ch4 螺纹连接"],
         ]},
       { date: "5月28日", label: "周四", tag: "plus", tagText: "强化",
         tasks: [
           ["math","数","数一三科交叉 — 高数+线代+概率各做1道大题"],
           ["math","高数","高数：做一套高数计算专项题(计时25min)"],
           ["eng","英","六级听力精听1套 + 阅读错题复习 + 单词50个"],
-          ["pro","专","机械设计 Ch7 齿轮传动重点 + 做2道计算题"],
+          ["pro","专","机械设计 Ch5 带传动 + Ch6 链传动"],
         ]},
       { date: "5月29日", label: "周五", tag: "plus", tagText: "强化",
         tasks: [
           ["math","数","数一三科交叉 — 线代大题1道 + 概率大题1道"],
           ["math","高数","高数：重点攻克薄弱题型（自选）"],
           ["eng","英","六级作文练习1篇 + 翻译1篇 + 单词50个"],
-          ["pro","专","机械原理重点题练习 + 整理思维导图"],
+          ["pro","专","机械设计 Ch7 齿轮传动（一半）"],
         ]},
       { date: "5月30日", label: "周六", tag: "plus", tagText: "月末总结",
         tasks: [
           ["math","数","五月数学全面复盘 — 高数+线代+概率错题本通览"],
-          ["math","高数","高数：五月高数错题全部过一遍 + 核心公式终版默写"],
+          ["math","高数","高数：五月高数错题全部过一遍 + 综合计算题2道"],
           ["eng","英","六级听力1套 + 整套真题模拟 + 批改"],
-          ["pro","专","专业课五月进度检查 + 六月规划"],
+          ["pro","专","机械设计 Ch7 齿轮传动完成 + 重点计算题2道"],
           ["review","复盘","月末全面复盘 30min — 五月总结 + 六月计划"],
         ]},
       { date: "5月31日", label: "周日", tag: "light", tagText: "轻量",
         tasks: [
           ["eng","英","六级听力精听 + 作文模板继续整理"],
-          ["math","高数","高数：翻翻公式本 + 错题本（不刷题）"],
+          ["math","高数","高数：重做本周错题1道（不刷新题）"],
           ["math","数","整理六月学习计划"],
-          ["review","复盘","休息调整，迎接六月 🔥"],
+          ["pro","专","机械设计 五月进度检查 + 六月规划"],
+          ["review","复盘","休息调整，迎接六月"],
         ]},
     ]
   },
@@ -852,16 +1055,22 @@ async function render() {
       const allDone = day.tasks.every((_, ti) => state[`${dayKey}_${ti}`]);
       html += `<div class="day-block${allDone ? ' open' : ''}" data-day="${dayKey}">`;
       html += `<div class="day-header" onclick="toggleDay(this.parentElement)">`;
-      html += `<span class="day-label">${allDone ? '✅ ' : ''}${day.date} ${day.label}<span class="notes-toggle" onclick="event.stopPropagation();toggleNotes('${dayKey}')">📝</span></span>`;
+      html += `<span class="day-label">${allDone ? '' : ''}${day.date} ${day.label}<span class="notes-toggle" onclick="event.stopPropagation();toggleNotes('${dayKey}')">[备注]</span></span>`;
       html += `<span class="day-tag ${day.tag}">${day.tagText}</span>`;
       html += `</div><div class="tasks">`;
       day.tasks.forEach((task, ti) => {
         const id = `${dayKey}_${ti}`;
         const checked = state[id] ? ' checked' : '';
+        const taskNoteKey = `tn_${id}`;
+        const taskNoteText = (state[taskNoteKey] || '').replace(/`/g,'\\`').replace(/</g,'&lt;');
+        const hasNote = state[taskNoteKey] && state[taskNoteKey].trim();
         html += `<div class="task-row" onclick="document.getElementById('${id}').click()">`;
         html += `<input type="checkbox" id="${id}" data-id="${id}"${checked} onchange="onCheck(this)" onclick="event.stopPropagation()">`;
-        html += `<label for="${id}"><span class="subject-tag ${subjectClass(task[0])}">${task[1]}</span>${task[2]}</label>`;
-        html += `</div>`;
+        html += `<label for="${id}"><span class="subject-tag ${subjectClass(task[0])}">${task[1]}</span>${task[2]}`;
+        html += `<span class="task-note-btn${checked ? ' show' : ''}" data-task="${id}" onclick="event.stopPropagation();event.preventDefault();toggleTaskNote('${id}')" title="添加备注">+</span>`;
+        html += `<span class="task-note-indicator${hasNote ? ' show' : ''}" data-indicator="${id}">*</span>`;
+        html += `</label></div>`;
+        html += `<textarea class="task-note-input" id="tn_input_${id}" data-task-note-key="${taskNoteKey}" placeholder="记录完成心得..." onchange="saveTaskNote(this)" onclick="event.stopPropagation()">${taskNoteText}</textarea>`;
         totalTasks++; totalAll++;
         if (state[id]) totalChecked++;
       });
@@ -879,13 +1088,28 @@ async function render() {
 
 async function onCheck(cb) {
   const state = await getState();
+  const id = cb.dataset.id;
   if (cb.checked) {
-    state[cb.dataset.id] = true;
+    state[id] = true;
     playDing();
     const rect = cb.getBoundingClientRect();
     spawnParticles(rect.left + rect.width/2, rect.top + rect.height/2);
-  } else { delete state[cb.dataset.id]; }
+  } else {
+    delete state[id];
+    // 取消勾选时隐藏备注按钮和输入框
+    const noteBtn = document.querySelector(`[data-task="${id}"]`);
+    if (noteBtn) noteBtn.classList.remove('show');
+    const noteInput = document.getElementById('tn_input_' + id);
+    if (noteInput) noteInput.classList.remove('visible');
+    const indicator = document.querySelector(`[data-indicator="${id}"]`);
+    if (indicator) indicator.classList.remove('show');
+  }
   await setState(state);
+  // 勾选后显示备注按钮
+  if (cb.checked) {
+    const noteBtn = document.querySelector(`[data-task="${id}"]`);
+    if (noteBtn) noteBtn.classList.add('show');
+  }
   updateAllProgress();
   updateDashboard();
 }
@@ -913,7 +1137,7 @@ async function updateAllProgress() {
       if (!block) return;
       const allDone = day.tasks.every((_, ti) => state[`${dayKey}_${ti}`]);
       const header = block.querySelector('.day-label');
-      if (header) { header.textContent = allDone ? `✅ ${day.date} ${day.label}` : `${day.date} ${day.label}`; }
+      if (header) { header.textContent = allDone ? `${day.date} ${day.label}` : `${day.date} ${day.label}`; }
     });
   });
 }
@@ -1067,6 +1291,28 @@ async function saveNote(ta) {
   await setState(state);
 }
 
+// ===== 任务备注 =====
+function toggleTaskNote(taskId) {
+  const input = document.getElementById('tn_input_' + taskId);
+  if (input) {
+    input.classList.toggle('visible');
+    if (input.classList.contains('visible')) input.focus();
+  }
+}
+async function saveTaskNote(ta) {
+  const state = await getState();
+  const key = ta.dataset.taskNoteKey;
+  if (ta.value.trim()) state[key] = ta.value; else delete state[key];
+  await setState(state);
+  // 更新备注指示器
+  const taskId = key.replace('tn_', '');
+  const indicator = document.querySelector(`[data-indicator="${taskId}"]`);
+  if (indicator) {
+    if (ta.value.trim()) indicator.classList.add('show');
+    else indicator.classList.remove('show');
+  }
+}
+
 // ===== 光萤之树 =====
 function updatePlant(totalPct) {
   const canvas = document.getElementById('plantCanvas');
@@ -1112,7 +1358,7 @@ async function showReport() {
     const pct = wTotal ? Math.round(wDone / wTotal * 100) : 0;
     const isCurrent = w === currentWeek;
     report += `<div style="margin-bottom:14px;${isCurrent ? 'background:rgba(143,201,169,0.08);border-radius:8px;padding:10px;border:1px solid rgba(143,201,169,0.2);' : ''}">`;
-    report += `<strong>${week.title}</strong>${isCurrent ? ' 👈 当前周' : ''}<br>`;
+    report += `<strong>${week.title}</strong>${isCurrent ? ' 当前周' : ''}<br>`;
     report += `<div class="report-row"><span>总完成率</span><span><b>${pct}%</b></span></div>`;
     report += `<div class="report-row"><span>数学</span><span>${subj.math[0]}/${subj.math[1]}</span></div>`;
     report += `<div class="report-row"><span>英语</span><span>${subj.eng[0]}/${subj.eng[1]}</span></div>`;
@@ -1121,7 +1367,7 @@ async function showReport() {
     report += `</div>`;
   }
   report += `<div style="margin-top:12px;padding-top:8px;border-top:1px solid #f0ece0;font-size:0.8em;text-align:center;color:var(--text-dim);">流萤寄语：<br><em>${randomQuote()}</em></div>`;
-  document.getElementById('reportContent').innerHTML = `<button class="modal-close" onclick="closeReport()">✕</button><h3>研习周报</h3>${report}`;
+  document.getElementById('reportContent').innerHTML = `<button class="modal-close" onclick="closeReport()">×</button><h3>研习周报</h3>${report}`;
   document.getElementById('reportModal').classList.add('show');
 }
 function closeReport() { document.getElementById('reportModal').classList.remove('show'); }
@@ -1166,7 +1412,7 @@ function renderHeatmap(dailyPcts) {
     const tip = cell.getAttribute('data-tooltip') || '';
     if (!tip.includes('0/')) return;
     const cellDate = parseTipDate(tip);
-    if (cellDate && cellDate < today) { cell.style.background = '#f0d0d0'; const x = document.createElement('span'); x.className = 'heatmap-x'; x.textContent = '✗'; cell.appendChild(x); }
+    if (cellDate && cellDate < today) { cell.style.background = '#f0d0d0'; const x = document.createElement('span'); x.className = 'heatmap-x'; x.textContent = '×'; cell.appendChild(x); }
   });
 }
 
@@ -1310,43 +1556,35 @@ async function processPendingPomoRecords() {
   try { records = JSON.parse(raw); } catch(e) { return; }
   const state = await getState();
   for (const r of records) {
-    const today = new Date();
-    const key = `pomo_${today.getFullYear()}_${today.getMonth()+1}_${today.getDate()}`;
+    const key = effectivePomoKey(new Date());
     const existing = state[key] || [];
     existing.push(r);
     state[key] = existing;
   }
   await setState(state);
+  updatePomoCount();
 }
 
 async function savePomoRecord(durationMin, task) {
   const state = await getState();
-  const today = new Date();
-  const key = `pomo_${today.getFullYear()}_${today.getMonth()+1}_${today.getDate()}`;
+  const now = new Date();
+  const key = effectivePomoKey(now);
   const records = state[key] || [];
   records.push({
-    time: `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`,
+    time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
     duration: durationMin,
     task: task || '自由学习',
     completed: true
   });
   state[key] = records;
   await setState(state);
-  renderPomoLog();
+  updatePomoCount();
 }
 
-async function renderPomoLog() {
+async function updatePomoCount() {
   const state = await getState();
-  const today = new Date();
-  const key = `pomo_${today.getFullYear()}_${today.getMonth()+1}_${today.getDate()}`;
+  const key = effectivePomoKey(new Date());
   const records = state[key] || [];
-  const log = document.getElementById('pomoLog');
-  if (records.length === 0) { log.innerHTML = ''; return; }
-  let html = '';
-  records.forEach(r => {
-    html += `<div class="pomo-log-entry"><span class="pl-time">${r.time}</span><span class="pl-task">${r.task}</span><span style="font-size:0.85em">${r.duration}min</span></div>`;
-  });
-  log.innerHTML = html;
   pomoCount = records.length;
   document.getElementById('pomoCount').textContent = '🍅 ' + pomoCount;
 }
@@ -1362,7 +1600,7 @@ function pomoTick() {
       const workDuration = Math.round((Date.now() - pomoStartTime) / 60000);
       pomoCount++;
       savePomoRecord(workDuration, pomoTask);
-      document.getElementById('pomoBtn').textContent = '☕'; document.getElementById('pomoBtn').className = 'pomo-btn paused';
+      document.getElementById('pomoBtn').textContent = '休息'; document.getElementById('pomoBtn').className = 'pomo-btn paused';
       document.getElementById('pomoTime').textContent = '完成！休息5分钟~';
       document.getElementById('pomoModal').classList.remove('show');
       setTimeout(() => {
@@ -1399,7 +1637,7 @@ function showPomoStats() {
     const bestDay = daily.reduce((best, d) => d.totalMin > best.totalMin ? d : best, { totalMin: 0 });
     const totalSessions = daily.reduce((s, d) => s + d.sessions, 0);
 
-    let html = `<button class="modal-close" onclick="closePomoStats()">✕</button>`;
+    let html = `<button class="modal-close" onclick="closePomoStats()">×</button>`;
     html += `<h3>🍅 番茄钟研习统计</h3>`;
     html += `<div class="stats-summary">`;
     html += `<div class="ss-card"><div class="ss-value">${totalHours}h</div><div class="ss-label">总学习时长</div></div>`;
@@ -1409,11 +1647,33 @@ function showPomoStats() {
     html += `</div>`;
 
     if (totalMin === 0) {
-      html += `<div class="stats-no-data">🍃 还没有番茄记录<br><span style="font-size:0.7em;">开启一个番茄钟，让萤火开始闪烁吧 ✨</span></div>`;
+      html += `<div class="stats-no-data">还没有番茄记录<br><span style="font-size:0.7em;">开启一个番茄钟，让萤火开始闪烁吧</span></div>`;
     } else {
-      html += `<div class="stats-chart-wrap"><h4>📊 每日学习时长（分钟）</h4><canvas id="chartDaily" width="640" height="240"></canvas></div>`;
-      html += `<div class="stats-chart-wrap"><h4>📈 累计学习时长趋势（小时）</h4><canvas id="chartCumulative" width="640" height="220"></canvas></div>`;
-      html += `<div class="stats-chart-wrap"><h4>📅 周学习量对比（小时）</h4><canvas id="chartWeekly" width="640" height="200"></canvas></div>`;
+      html += `<div class="stats-chart-wrap"><h4>每日学习时长（分钟）</h4><canvas id="chartDaily" width="640" height="240"></canvas></div>`;
+      html += `<div class="stats-chart-wrap"><h4>累计学习时长趋势（小时）</h4><canvas id="chartCumulative" width="640" height="220"></canvas></div>`;
+      html += `<div class="stats-chart-wrap"><h4>周学习量对比（小时）</h4><canvas id="chartWeekly" width="640" height="200"></canvas></div>`;
+
+      // 番茄记录明细
+      html += `<div class="pomo-records-wrap"><h4>番茄记录明细</h4>`;
+      const allRecords = [];
+      daily.filter(d => d.records.length > 0).forEach(d => {
+        d.records.forEach(r => {
+            const startParts = (r.time || '00:00').split(':');
+            const startMin = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+            const endMin = startMin + (r.duration || 0);
+            const endTime = `${String(Math.floor(endMin / 60) % 24).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+            allRecords.push({ date: d.day, timeRange: `${r.time}-${endTime}`, task: r.task, duration: r.duration });
+          });
+      });
+      allRecords.reverse(); // 最近的在前
+      if (allRecords.length > 0) {
+        html += `<table class="pomo-records-table"><thead><tr><th>日期</th><th>时间段</th><th>任务</th><th>时长</th></tr></thead><tbody>`;
+        allRecords.forEach(r => {
+          html += `<tr><td class="pr-date">${r.date}</td><td class="pr-time">${r.timeRange}</td><td class="pr-task" title="${r.task.replace(/"/g, '&quot;')}">${r.task}</td><td class="pr-dur">${r.duration}min</td></tr>`;
+        });
+        html += `</tbody></table>`;
+      }
+      html += `</div>`;
     }
 
     document.getElementById('statsContent').innerHTML = html;
@@ -1617,12 +1877,1036 @@ document.addEventListener('click', (e) => {
   if (e.target.id === 'statsModal') closePomoStats();
 });
 
+// ========== 日记功能 ==========
+const DIARY_CATEGORIES = [
+  {
+    key: 'study', label: '今日学习状态',
+    options: [
+      { v: 'overachieved', label: '超额完成' },
+      { v: 'productive', label: '充实高效' },
+      { v: 'steady', label: '平稳推进' },
+      { v: 'procrast', label: '略有拖延' },
+      { v: 'bad', label: '状态不佳' }
+    ]
+  },
+  {
+    key: 'mood', label: '今日心情',
+    options: [
+      { v: 'motivated', label: '充满动力' },
+      { v: 'accomplished', label: '有成就感' },
+      { v: 'happy', label: '开心满足' },
+      { v: 'calm', label: '平静淡定' },
+      { v: 'anxious', label: '有些焦虑' },
+      { v: 'tired', label: '疲惫困倦' }
+    ]
+  },
+  {
+    key: 'focus', label: '专注程度',
+    options: [
+      { v: 'flow', label: '心流状态' },
+      { v: 'high', label: '高度专注' },
+      { v: 'moderate', label: '比较专注' },
+      { v: 'average', label: '一般般' },
+      { v: 'low', label: '容易分心' }
+    ]
+  },
+  {
+    key: 'hours', label: '学习时长',
+    options: [
+      { v: '8+', label: '8小时以上' },
+      { v: '6-8', label: '6-8小时' },
+      { v: '4-6', label: '4-6小时' },
+      { v: '2-4', label: '2-4小时' },
+      { v: '<2', label: '2小时以下' }
+    ]
+  },
+  {
+    key: 'difficulty', label: '今日困难（可多选）', multi: true,
+    options: [
+      { v: 'none', label: '没有特别困难' },
+      { v: 'math_hard', label: '数学卡壳' },
+      { v: 'eng_hard', label: '英语吃力' },
+      { v: 'pro_hard', label: '专业课难懂' },
+      { v: 'multi_hard', label: '多项困难' }
+    ]
+  },
+  {
+    key: 'physical', label: '身体状态',
+    options: [
+      { v: 'energetic', label: '精力充沛' },
+      { v: 'normal', label: '正常' },
+      { v: 'tired_body', label: '有点疲惫' },
+      { v: 'unwell', label: '不舒服' }
+    ]
+  },
+  {
+    key: 'method', label: '学习方式（可多选）', multi: true,
+    options: [
+      { v: 'video', label: '看课' },
+      { v: 'practice', label: '刷题' },
+      { v: 'reading', label: '看书' },
+      { v: 'mixed', label: '综合' }
+    ]
+  },
+  {
+    key: 'bedtime', label: '入睡时间',
+    options: [
+      { v: 'bt_22', label: '22:00前' },
+      { v: 'bt_22_23', label: '22:00-23:00' },
+      { v: 'bt_23_24', label: '23:00-00:00' },
+      { v: 'bt_00_01', label: '00:00-01:00' },
+      { v: 'bt_01_02', label: '01:00-02:00' },
+      { v: 'bt_02', label: '02:00以后' }
+    ]
+  },
+  {
+    key: 'wakeup', label: '起床时间',
+    options: [
+      { v: 'wu_6', label: '6:00前' },
+      { v: 'wu_6_7', label: '6:00-7:00' },
+      { v: 'wu_7_8', label: '7:00-8:00' },
+      { v: 'wu_8_9', label: '8:00-9:00' },
+      { v: 'wu_9', label: '9:00以后' }
+    ]
+  },
+  {
+    key: 'tomorrow', label: '明日计划重点',
+    options: [
+      { v: 'math', label: '数学为主' },
+      { v: 'eng', label: '英语为主' },
+      { v: 'pro', label: '专业课为主' },
+      { v: 'balanced', label: '均衡复习' }
+    ]
+  }
+];
+
+const DIARY_LABELS = {};
+DIARY_CATEGORIES.forEach(cat => {
+  DIARY_LABELS[cat.key] = {};
+  cat.options.forEach(opt => { DIARY_LABELS[cat.key][opt.v] = opt.label; });
+});
+
+function diaryKey(dateStr) { return 'diary_' + dateStr; }
+
+// 凌晨4点作为日期分界：0:00-3:59 算作前一天
+function effectiveDate(date) {
+  const d = new Date(date);
+  if (d.getHours() < 4) {
+    d.setDate(d.getDate() - 1);
+  }
+  return d;
+}
+function effectiveDateStr(date) {
+  const d = effectiveDate(date);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function effectivePomoKey(date) {
+  const d = effectiveDate(date);
+  return `pomo_${d.getFullYear()}_${d.getMonth()+1}_${d.getDate()}`;
+}
+
+function getTodayStr() {
+  return effectiveDateStr(new Date());
+}
+
+let diaryViewDate = getTodayStr();
+let diaryTab = 'write';
+let diaryTemp = {};
+
+// ========== 每日总结生成 ==========
+function summaryKey(dateStr) { return 'summary_' + dateStr; }
+
+function dateStrToMonthDay(dateStr) {
+  const parts = dateStr.split('-');
+  return `${parseInt(parts[1])}月${parseInt(parts[2])}日`;
+}
+
+function findDayIndex(dateStr) {
+  const target = dateStrToMonthDay(dateStr);
+  for (let wi = 0; wi < weeks.length; wi++) {
+    for (let di = 0; di < weeks[wi].days.length; di++) {
+      if (weeks[wi].days[di].date === target) return { wi, di, day: weeks[wi].days[di] };
+    }
+  }
+  return null;
+}
+
+function getYesterdayStr() {
+  const d = effectiveDate(new Date());
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getDateStrDaysAgo(days) {
+  const d = effectiveDate(new Date());
+  d.setDate(d.getDate() - days);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+async function gatherDayData(dateStr, existingState) {
+  const state = existingState || await getState();
+  const result = { dateStr, hasTaskData: false, hasPomoData: false, hasDiaryData: false };
+
+  // Task data
+  const dayIdx = findDayIndex(dateStr);
+  if (dayIdx) {
+    let done = 0;
+    const total = dayIdx.day.tasks.length;
+    dayIdx.day.tasks.forEach((_, ti) => {
+      if (state[`${dayIdx.wi}_${dayIdx.di}_${ti}`]) done++;
+    });
+    result.taskData = { done, total, rate: total > 0 ? Math.round(done / total * 100) : 0 };
+    result.hasTaskData = true;
+  }
+
+  // Pomodoro data
+  const parts = dateStr.split('-');
+  const pomoKey = `pomo_${parts[0]}_${parseInt(parts[1])}_${parseInt(parts[2])}`;
+  const pomoRecords = state[pomoKey] || [];
+  if (pomoRecords.length > 0) {
+    const totalMin = pomoRecords.reduce((s, r) => s + (r.duration || 0), 0);
+    result.pomoData = { totalMin, sessions: pomoRecords.length, records: pomoRecords };
+    result.hasPomoData = true;
+  }
+
+  // Diary data
+  const diaryEntry = state[diaryKey(dateStr)];
+  if (diaryEntry && Object.keys(diaryEntry).length > 0) {
+    result.diaryData = diaryEntry;
+    result.hasDiaryData = true;
+  }
+
+  // Focus monitoring data (merged from focus_state.json by server)
+  const focusSummary = (state._focus_summary && state._focus_summary[dateStr]) || {};
+  const focusSessions = (state._focus_sessions && state._focus_sessions[dateStr]) || [];
+  if (Object.keys(focusSummary).length > 0 || focusSessions.length > 0) {
+    result.focusData = {
+      distractionSec: focusSummary.distraction_sec || 0,
+      studySec: focusSummary.study_sec || 0,
+      incidents: focusSummary.incidents || 0,
+      sessions: focusSessions
+    };
+    result.hasFocusData = true;
+  }
+
+  return result;
+}
+
+function generateSummaryText(dayData) {
+  const { dateStr, taskData, pomoData, diaryData, focusData } = dayData;
+  const display = dateStrToMonthDay(dateStr);
+  const details = [];
+
+  // Task rate
+  if (taskData) {
+    const rate = taskData.rate;
+    if (rate >= 100) details.push(`全部${taskData.total}项任务完成`);
+    else if (rate >= 75) details.push(`完成${taskData.done}/${taskData.total}项任务（${rate}%）`);
+    else if (rate >= 50) details.push(`完成${taskData.done}/${taskData.total}项任务（${rate}%），还需努力`);
+    else if (taskData.done > 0) details.push(`完成${taskData.done}/${taskData.total}项任务（${rate}%），进度偏慢`);
+    else details.push(`未完成计划任务，需调整节奏`);
+  }
+
+  // Pomo
+  if (pomoData && pomoData.totalMin > 0) {
+    const h = (pomoData.totalMin / 60).toFixed(1);
+    details.push(`番茄钟学习${h}小时（${pomoData.sessions}个番茄）`);
+  }
+
+  // Focus data
+  if (focusData && (focusData.distractionSec > 0 || focusData.studySec > 0)) {
+    const totalMin = Math.round((focusData.studySec + focusData.distractionSec) / 60);
+    if (focusData.studySec > 0) details.push(`屏幕专注时长${formatDuration(focusData.studySec)}`);
+    if (focusData.distractionSec > 0) details.push(`摸鱼时长${formatDuration(focusData.distractionSec)}（${focusData.incidents}次）`);
+  }
+
+  // Diary
+  if (diaryData) {
+    const fmtVal = (catKey, val) => {
+      if (Array.isArray(val)) return val.map(v => DIARY_LABELS[catKey][v]).filter(Boolean).join('、');
+      return DIARY_LABELS[catKey][val];
+    };
+    if (diaryData.study) details.push(`学习状态：${fmtVal('study', diaryData.study)}`);
+    if (diaryData.focus) details.push(`专注度：${fmtVal('focus', diaryData.focus)}`);
+    if (diaryData.mood) details.push(`心情：${fmtVal('mood', diaryData.mood)}`);
+    if (diaryData.hours) details.push(`记录时长：${fmtVal('hours', diaryData.hours)}`);
+    if (diaryData.method) details.push(`学习方式：${fmtVal('method', diaryData.method)}`);
+    if (diaryData.physical) details.push(`身体状态：${fmtVal('physical', diaryData.physical)}`);
+    if (diaryData.difficulty) details.push(`困难点：${fmtVal('difficulty', diaryData.difficulty)}`);
+    if (diaryData.bedtime) details.push(`入睡时间：${fmtVal('bedtime', diaryData.bedtime)}`);
+    if (diaryData.wakeup) details.push(`起床时间：${fmtVal('wakeup', diaryData.wakeup)}`);
+  }
+
+  // Overall rating
+  let score = 0;
+  if (taskData) score += Math.min(taskData.rate, 100) * 0.35;
+  if (pomoData) score += Math.min(pomoData.totalMin / 4, 100) * 0.2;
+  if (focusData && (focusData.studySec + focusData.distractionSec) > 0) {
+    const totalSec = focusData.studySec + focusData.distractionSec;
+    const focusRate = focusData.studySec / totalSec;
+    score += Math.round(focusRate * 15); // 专注率贡献最多15分
+    if (focusData.incidents === 0) score += 10; // 零摸鱼加分
+  }
+  if (diaryData) {
+    if (diaryData.study === 'overachieved') score += 20;
+    else if (diaryData.study === 'productive') score += 15;
+    else if (diaryData.study === 'steady') score += 10;
+    if (diaryData.focus === 'flow') score += 20;
+    else if (diaryData.focus === 'high') score += 15;
+    else if (diaryData.focus === 'moderate') score += 8;
+    if (diaryData.physical === 'energetic') score += 8;
+    const diffVal = diaryData.difficulty;
+    const diffNone = Array.isArray(diffVal) ? diffVal.includes('none') : diffVal === 'none';
+    if (diffNone) score += 8;
+  }
+  score = Math.round(Math.min(score, 100));
+
+  let stars = '';
+  if (score >= 90) stars = '3';
+  else if (score >= 60) stars = '2';
+  else if (score >= 30) stars = '1';
+  else stars = '0';
+
+  let overall = '';
+  if (score >= 90) overall = `${display}表现优异！任务完成率高，学习投入充足，状态极佳。流萤之光正燃亮前路，继续保持！`;
+  else if (score >= 70) overall = `${display}表现良好。大部分任务按计划推进，学习节奏稳定。每一步都算数，坚持就是胜利。`;
+  else if (score >= 50) overall = `${display}中等表现。完成了一半以上的任务，还有提升空间。调整好状态，明天会更好。`;
+  else if (score >= 30) overall = `${display}今天进度偏慢。也许遇到了困难或状态不佳，没关系，休息一下，明天重新出发。`;
+  else if (taskData && taskData.done > 0) overall = `${display}只完成了少量任务。建议反思时间分配，找到更适合自己的学习方式。`;
+  else if (taskData && taskData.done === 0) overall = `${display}没有完成任务的一天。或许是计划太满或状态不佳，适当调整节奏也很重要。`;
+  else overall = `${display}没有计划任务的一天，自由学习或休息也是备考的一部分。`;
+
+  return {
+    dateStr,
+    display,
+    score,
+    stars,
+    details: details.join('；') || '暂无详细数据',
+    overall,
+    generatedAt: new Date().toISOString()
+  };
+}
+
+async function generateAndSaveSummary(dateStr) {
+  const dayData = await gatherDayData(dateStr);
+  const summary = generateSummaryText(dayData);
+  const state = await getState();
+  state[summaryKey(dateStr)] = summary;
+  await setState(state);
+  return summary;
+}
+
+function canGenerateNow() {
+  const hour = new Date().getHours();
+  return hour >= 4;
+}
+
+async function getOrGenerateSummary(dateStr) {
+  const state = await getState();
+  const existing = state[summaryKey(dateStr)];
+  if (existing) return existing;
+  // Only auto-generate if it's after 4 AM
+  if (!canGenerateNow()) return null;
+  return await generateAndSaveSummary(dateStr);
+}
+
+function renderSummaryCard(summary) {
+  let html = `<div class="summary-card">`;
+  html += `<div class="s-date">${summary.display} 总结 <span class="s-badge">`;
+  html += `<span class="summary-stars">${'·'.repeat(parseInt(summary.stars) || 0)}</span>`;
+  html += summary.score >= 90 ? ' 优秀' : summary.score >= 70 ? ' 良好' : summary.score >= 50 ? ' 中等' : ' 加油';
+  html += `</span></div>`;
+
+  // Task rate bar
+  html += `<div class="s-details">`;
+  html += `<div class="s-stat">任务完成率 <span class="s-val">${summary.score}分</span></div>`;
+  html += `<div class="summary-rate-bar"><div class="rate-outer"><div class="rate-inner" style="width:${summary.score}%;background:${summary.score >= 70 ? '#8fc9a9' : summary.score >= 40 ? '#f4a460' : '#ff7b42'}"></div></div><div class="rate-pct">${summary.score}%</div></div>`;
+  html += `<p style="margin-top:4px;color:var(--text-dim);">${summary.details}</p>`;
+  html += `</div>`;
+
+  html += `<div class="s-overall">${summary.overall}</div>`;
+  html += `</div>`;
+  return html;
+}
+
+async function changeDiaryDate(delta) {
+  const d = new Date(diaryViewDate);
+  d.setDate(d.getDate() + delta);
+  diaryViewDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const state = await getState();
+  diaryTemp = {};
+  Object.assign(diaryTemp, state[diaryKey(diaryViewDate)] || {});
+  renderDiaryContent();
+}
+
+async function openDiary() {
+  diaryViewDate = getTodayStr();
+  diaryTab = 'write';
+  diaryTemp = {};
+  const state = await getState();
+  const saved = state[diaryKey(diaryViewDate)] || {};
+  Object.assign(diaryTemp, saved);
+
+  // Auto-generate yesterday's summary if it's after 4 AM and not yet generated
+  const yesterdayStr = getYesterdayStr();
+  if (canGenerateNow() && !state[summaryKey(yesterdayStr)]) {
+    await generateAndSaveSummary(yesterdayStr);
+  }
+
+  document.getElementById('diaryOverlay').classList.add('show');
+  renderDiaryContent();
+}
+
+function closeDiary() {
+  document.getElementById('diaryOverlay').classList.remove('show');
+}
+
+async function renderDiaryContent() {
+  const modal = document.getElementById('diaryModal');
+  const dateDisplay = diaryViewDate;
+  const isToday = diaryViewDate === getTodayStr();
+  const state = await getState();
+
+  let html = `<button class="modal-close" onclick="closeDiary()" style="float:right;">×</button>`;
+  html += `<h3>萤火日记</h3>`;
+  html += `<div class="diary-section-tabs">`;
+  html += `<button class="diary-tab${diaryTab === 'write' ? ' active' : ''}" onclick="switchDiaryTab('write')">写日记</button>`;
+  html += `<button class="diary-tab${diaryTab === 'history' ? ' active' : ''}" onclick="switchDiaryTab('history')">历史记录</button>`;
+  html += `<button class="diary-tab${diaryTab === 'summary' ? ' active' : ''}" onclick="switchDiaryTab('summary')">每日总结</button>`;
+  html += `</div>`;
+
+  if (diaryTab === 'write') {
+    html += `<div class="diary-date-nav">`;
+    html += `<button onclick="changeDiaryDate(-1)">◀</button>`;
+    html += `<span class="date-label">${dateDisplay}${isToday ? ' (今天)' : ''}</span>`;
+    html += `<button onclick="changeDiaryDate(1)"${isToday ? ' disabled' : ''}>▶</button>`;
+    html += `</div>`;
+
+    DIARY_CATEGORIES.forEach(cat => {
+      html += `<div class="diary-section">`;
+      html += `<div class="section-label">${cat.label}${cat.multi ? ' <span style="font-size:0.8em;color:var(--text-dim);">(可多选)</span>' : ''}</div>`;
+      html += `<div class="diary-options">`;
+      cat.options.forEach(opt => {
+        let selected;
+        if (cat.multi) {
+          const arr = diaryTemp[cat.key];
+          selected = Array.isArray(arr) && arr.includes(opt.v);
+        } else {
+          selected = diaryTemp[cat.key] === opt.v;
+        }
+        html += `<button class="diary-opt${selected ? ' selected' : ''}" onclick="selectDiaryOpt('${cat.key}', '${opt.v}')">${opt.label}</button>`;
+      });
+      html += `</div></div>`;
+    });
+
+    html += `<button class="diary-save-btn" onclick="saveDiary()">${isToday ? '保存今日日记' : '补记日记'}</button>`;
+    html += `<div class="diary-saved-hint" id="diarySavedHint">已保存</div>`;
+
+    // 昨日总结
+    const yesterdayStr = getYesterdayStr();
+    if (canGenerateNow()) {
+      const storedSummary = state[summaryKey(yesterdayStr)];
+      html += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">`;
+      html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">`;
+      html += `<span style="font-size:0.7em;color:var(--sage);font-weight:600;">昨日总结（${dateStrToMonthDay(yesterdayStr)}）</span>`;
+      html += `<button onclick="refreshSummary('${yesterdayStr}')" style="font-size:0.65em;padding:3px 10px;border-radius:12px;border:1px solid var(--mint);background:rgba(143,201,169,0.08);color:var(--sage);cursor:pointer;font-family:inherit;">刷新</button>`;
+      html += `</div>`;
+      if (storedSummary) {
+        html += renderSummaryCard(storedSummary);
+      } else {
+        html += `<div style="text-align:center;color:var(--text-dim);padding:16px;font-size:0.72em;">暂无昨日总结，点击"刷新"生成</div>`;
+      }
+      html += `</div>`;
+    }
+  } else if (diaryTab === 'history') {
+    html += `<div style="max-height:55vh;overflow-y:auto;">`;
+    const diaryKeys = Object.keys(state).filter(k => k.startsWith('diary_')).sort().reverse();
+    if (diaryKeys.length === 0) {
+      html += `<p style="text-align:center;color:var(--text-dim);padding:30px;">还没有日记记录<br><span style="font-size:0.7em;">开始写日记，记录每天的学习旅程吧</span></p>`;
+    } else {
+      for (const key of diaryKeys) {
+        const entry = state[key];
+        const ds = key.replace('diary_', '');
+        html += `<div class="diary-history-item">`;
+        html += `<div class="h-date">${ds}</div>`;
+        DIARY_CATEGORIES.forEach(cat => {
+          const val = entry[cat.key];
+          if (!val) return;
+          if (Array.isArray(val)) {
+            val.forEach(v => {
+              if (DIARY_LABELS[cat.key][v]) html += `<span class="h-tag">${DIARY_LABELS[cat.key][v]}</span>`;
+            });
+          } else {
+            if (DIARY_LABELS[cat.key][val]) html += `<span class="h-tag">${DIARY_LABELS[cat.key][val]}</span>`;
+          }
+        });
+        // 显示已存储的总结摘要
+        const storedSum = state[summaryKey(ds)];
+        if (storedSum) {
+          html += `<div style="margin-top:4px;font-size:0.95em;color:var(--amber);">评分：<span class="summary-stars">${'·'.repeat(parseInt(storedSum.stars)||0)}</span> ${storedSum.overall.substring(0, 40)}...</div>`;
+        }
+        html += `</div>`;
+      }
+    }
+    html += `</div>`;
+  } else {
+    // Summary tab — 展示已存储的总结
+    html += `<div style="margin-bottom:10px;display:flex;gap:8px;">`;
+    html += `<button class="summary-generate-btn" onclick="refreshAllSummaries()" style="margin-bottom:0;flex:1;">刷新全部总结</button>`;
+    html += `</div>`;
+    html += `<div style="max-height:50vh;overflow-y:auto;">`;
+
+    const summaryKeys = Object.keys(state).filter(k => k.startsWith('summary_')).sort().reverse();
+    if (summaryKeys.length === 0) {
+      html += `<div class="summary-empty">还没有每日总结<br><span style="font-size:0.7em;">凌晨4点后打开日记会自动生成昨日总结<br>也可以点击上方按钮刷新全部</span></div>`;
+    } else {
+      summaryKeys.forEach(key => {
+        const summary = state[key];
+        html += `<div style="position:relative;">`;
+        html += `<button onclick="refreshSummary('${summary.dateStr}')" style="position:absolute;top:8px;right:8px;z-index:1;font-size:0.6em;padding:2px 8px;border-radius:10px;border:1px solid var(--mint);background:var(--white);color:var(--sage);cursor:pointer;font-family:inherit;">刷新</button>`;
+        html += renderSummaryCard(summary);
+        html += `</div>`;
+      });
+    }
+    html += `</div>`;
+  }
+
+  modal.innerHTML = html;
+}
+
+function isMultiSelect(catKey) {
+  const cat = DIARY_CATEGORIES.find(c => c.key === catKey);
+  return cat && cat.multi;
+}
+
+async function selectDiaryOpt(catKey, optVal) {
+  if (isMultiSelect(catKey)) {
+    let arr = diaryTemp[catKey];
+    if (!Array.isArray(arr)) arr = [];
+    const idx = arr.indexOf(optVal);
+    if (idx >= 0) arr.splice(idx, 1);
+    else arr.push(optVal);
+    diaryTemp[catKey] = arr;
+  } else {
+    diaryTemp[catKey] = optVal;
+  }
+  renderDiaryContent();
+}
+
+async function switchDiaryTab(tab) {
+  diaryTab = tab;
+  renderDiaryContent();
+}
+
+async function genYesterdaySummary() {
+  const yesterdayStr = getYesterdayStr();
+  await generateAndSaveSummary(yesterdayStr);
+  renderDiaryContent();
+}
+
+async function refreshSummary(dateStr) {
+  await generateAndSaveSummary(dateStr);
+  renderDiaryContent();
+}
+
+async function refreshAllSummaries() {
+  const state = await getState();
+  const todayStr = getTodayStr();
+  for (let d = 11; d <= 31; d++) {
+    const ds = `2026-05-${String(d).padStart(2, '0')}`;
+    if (ds > todayStr) break;
+    const dayData = await gatherDayData(ds, state);
+    if (dayData.hasTaskData || dayData.hasPomoData || dayData.hasDiaryData) {
+      const sum = generateSummaryText(dayData);
+      state[summaryKey(ds)] = sum;
+    }
+  }
+  await setState(state);
+  renderDiaryContent();
+}
+
+async function saveDiary() {
+  const state = await getState();
+  const key = diaryKey(diaryViewDate);
+  state[key] = { ...diaryTemp };
+  await setState(state);
+  const hint = document.getElementById('diarySavedHint');
+  if (hint) { hint.classList.add('show'); setTimeout(() => hint.classList.remove('show'), 2000); }
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'diaryOverlay') closeDiary();
+});
+
+// ========== 专注监控面板 ==========
+async function updateFocusPanel() {
+  const card = document.getElementById('focusCard');
+  if (!card) return;
+  let focusData = null;
+  let hasRealData = false;
+  try {
+    const res = await fetch('/api/focus', { cache: 'no-store' });
+    if (res.ok) {
+      focusData = await res.json();
+      // 检查是否有真实数据（不仅仅是空对象）
+      if (focusData && typeof focusData === 'object') {
+        const sessions = focusData.sessions || {};
+        const today_summary = focusData.today_summary || {};
+        // 检查是否有任何日期的数据
+        hasRealData = Object.keys(sessions).length > 0 || Object.keys(today_summary).length > 0;
+      }
+    }
+  } catch(e) {}
+
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const summary = (focusData && focusData.today_summary && focusData.today_summary[todayKey]) || {};
+  const sessions = (focusData && focusData.sessions && focusData.sessions[todayKey]) || [];
+  const distractionSec = summary.distraction_sec || 0;
+  const studySec = summary.study_sec || 0;
+  const totalSec = distractionSec + studySec;
+
+  // Status dot
+  const dot = document.getElementById('focusStatusDot');
+  if (dot) dot.className = 'focus-status' + (hasRealData ? '' : ' off');
+
+  // Updated time
+  const updatedEl = document.getElementById('focusUpdated');
+  if (updatedEl) updatedEl.textContent = hasRealData ? `· ${today.getHours()}时${String(today.getMinutes()).padStart(2,'0')}分更新` : '';
+
+  // Stats
+  document.getElementById('fsStudy').textContent = studySec > 0 ? formatDuration(studySec) : '--';
+  document.getElementById('fsDistraction').textContent = distractionSec > 0 ? formatDuration(distractionSec) : '0min';
+  const rate = totalSec > 0 ? Math.round(studySec / totalSec * 100) : 0;
+  document.getElementById('fsRate').textContent = totalSec > 0 ? rate + '%' : '--';
+
+  // Incidents list
+  const incidentsEl = document.getElementById('focusIncidents');
+  if (!hasRealData) {
+    incidentsEl.innerHTML = `<div class="focus-offline">监控未启动<br><span class="focus-start-hint">运行 python focus_monitor.py 启动监控</span></div>`;
+  } else if (sessions.length === 0) {
+    incidentsEl.innerHTML = `<div class="focus-empty">今日暂无摸鱼记录，继续保持！</div>`;
+  } else {
+    let html = '';
+    const distractions = sessions.filter(s => s.category === 'distraction').reverse();
+    distractions.slice(0, 10).forEach(s => {
+      const dur = formatDuration(s.duration_sec || 0);
+      const shortTitle = (s.title || '未知').substring(0, 40);
+      html += `<div class="fi-row"><span class="fi-time">${s.start}</span><span class="fi-title" title="${(s.title||'').replace(/"/g,'&quot;')}">${shortTitle}</span><span class="fi-dur">${dur}</span></div>`;
+    });
+    if (distractions.length > 10) html += `<div style="text-align:center;color:var(--text-dim);">...还有 ${distractions.length - 10} 条</div>`;
+    incidentsEl.innerHTML = html || `<div class="focus-empty">今日暂无摸鱼记录，继续保持！</div>`;
+  }
+}
+
+function formatDuration(sec) {
+  if (sec < 60) return Math.round(sec) + 's';
+  if (sec < 3600) return (sec / 60).toFixed(1) + 'min';
+  return (sec / 3600).toFixed(1) + 'h';
+}
+
+// 每30秒更新一次专注数据
+setInterval(updateFocusPanel, 30000);
+
+// ========== 专注监控弹窗 ==========
+let focusDetailTab = 'stats'; // 'stats' | 'log' | 'config'
+let focusConfigData = null;
+
+async function showFocusDetail() {
+  focusDetailTab = 'stats';
+  await loadFocusConfig();
+  document.getElementById('focusModalOverlay').classList.add('show');
+  renderFocusDetail();
+}
+
+function closeFocusDetail() {
+  document.getElementById('focusModalOverlay').classList.remove('show');
+}
+
+async function loadFocusConfig() {
+  try {
+    const res = await fetch('/api/focus_config', { cache: 'no-store' });
+    if (res.ok) focusConfigData = await res.json();
+  } catch(e) { focusConfigData = null; }
+}
+
+async function saveFocusConfig() {
+  if (!focusConfigData) return;
+  try {
+    await fetch('/api/focus_config', {
+      method: 'POST',
+      body: JSON.stringify(focusConfigData)
+    });
+  } catch(e) {}
+}
+
+function switchFocusTab(tab) {
+  focusDetailTab = tab;
+  renderFocusDetail();
+}
+
+async function renderFocusDetail() {
+  const box = document.getElementById('focusModalContent');
+  let focusData = null;
+  try {
+    const res = await fetch('/api/focus', { cache: 'no-store' });
+    if (res.ok) focusData = await res.json();
+  } catch(e) {}
+
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  let html = `<button class="modal-close" onclick="closeFocusDetail()">×</button>`;
+  html += `<h3>专注监控分析</h3>`;
+
+  // Tabs
+  html += `<div class="focus-modal-tabs">`;
+  html += `<button class="focus-modal-tab${focusDetailTab==='stats'?' active':''}" onclick="switchFocusTab('stats')">数据分析</button>`;
+  html += `<button class="focus-modal-tab${focusDetailTab==='log'?' active':''}" onclick="switchFocusTab('log')">活动日志</button>`;
+  html += `<button class="focus-modal-tab${focusDetailTab==='config'?' active':''}" onclick="switchFocusTab('config')">黑白名单</button>`;
+  html += `</div>`;
+
+  if (focusDetailTab === 'stats') {
+    // === Data Analysis ===
+    if (!focusData) {
+      html += `<div class="stats-no-data">监控未启动<br><span style="font-size:0.7em;">运行 python focus_monitor.py 启动监控</span></div>`;
+    } else {
+      const sessions = (focusData.sessions && focusData.sessions[todayKey]) || [];
+      const summary = (focusData.today_summary && focusData.today_summary[todayKey]) || {};
+      const distractionSec = summary.distraction_sec || 0;
+      const studySec = summary.study_sec || 0;
+      const totalSec = distractionSec + studySec;
+      const focusRate = totalSec > 0 ? Math.round(studySec / totalSec * 100) : 0;
+
+      // Summary cards
+      html += `<div class="stats-summary">`;
+      html += `<div class="ss-card"><div class="ss-value">${formatDuration(studySec)}</div><div class="ss-label">屏幕专注时长</div></div>`;
+      html += `<div class="ss-card"><div class="ss-value" style="color:#e8734a;">${formatDuration(distractionSec)}</div><div class="ss-label">摸鱼时长</div></div>`;
+      html += `<div class="ss-card"><div class="ss-value" style="color:${focusRate>=80?'#8fc9a9':focusRate>=50?'#f4a460':'#e8734a'};">${totalSec>0?focusRate+'%':'--'}</div><div class="ss-label">专注率</div></div>`;
+      html += `<div class="ss-card"><div class="ss-value">${summary.incidents||0}</div><div class="ss-label">摸鱼次数</div></div>`;
+      html += `</div>`;
+
+      // Today's timeline chart (hourly)
+      if (sessions.length > 0) {
+        html += `<div class="stats-chart-wrap"><h4>今日活动时间线</h4><canvas id="focusTimelineCanvas" width="640" height="200"></canvas></div>`;
+
+        // Daily comparison (last 7 days)
+        html += `<div class="stats-chart-wrap"><h4>近7日专注对比</h4><canvas id="focusDailyCanvas" width="640" height="200"></canvas></div>`;
+
+        // Top distractions
+        const distractions = sessions.filter(s => s.category === 'distraction');
+        if (distractions.length > 0) {
+          const sourceMap = {};
+          distractions.forEach(s => {
+            const src = s.matched || '其他';
+            sourceMap[src] = (sourceMap[src] || 0) + (s.duration_sec || 0);
+          });
+          const sorted = Object.entries(sourceMap).sort((a,b) => b[1] - a[1]).slice(0, 6);
+          html += `<div class="stats-chart-wrap"><h4>摸鱼来源 TOP6</h4><canvas id="focusSourceCanvas" width="640" height="180"></canvas></div>`;
+        }
+
+        // Render charts after DOM update
+        setTimeout(() => {
+          drawFocusTimeline(document.getElementById('focusTimelineCanvas'), sessions);
+          drawFocusDailyCompare(document.getElementById('focusDailyCanvas'), focusData);
+          if (distractions && distractions.length > 0) {
+            drawFocusSourceChart(document.getElementById('focusSourceCanvas'), distractions);
+          }
+        }, 50);
+      }
+    }
+  } else if (focusDetailTab === 'log') {
+    // === Activity Log ===
+    if (!focusData) {
+      html += `<div class="stats-no-data">监控未启动</div>`;
+    } else {
+      const sessions = (focusData.sessions && focusData.sessions[todayKey]) || [];
+      if (sessions.length === 0) {
+        html += `<div class="focus-empty" style="padding:30px;">今日暂无活动记录</div>`;
+      } else {
+        html += `<div class="focus-timeline">`;
+        sessions.slice().reverse().forEach(s => {
+          const dur = formatDuration(s.duration_sec || 0);
+          const catLabel = s.category === 'distraction' ? '摸鱼' : s.category === 'study' ? '学习' : '空闲';
+          const shortTitle = (s.title || '未知').substring(0, 60);
+          html += `<div class="focus-timeline-item ${s.category}">`;
+          html += `<span class="tl-time">${s.start}-${s.end}</span>`;
+          html += `<span class="tl-title" title="${(s.title||'').replace(/"/g,'&quot;')}">${shortTitle}</span>`;
+          html += ` <span style="color:${s.category==='distraction'?'#e8734a':'#8fc9a9'};">(${dur})</span>`;
+          html += `</div>`;
+        });
+        html += `</div>`;
+      }
+    }
+  } else {
+    // === Blacklist/Whitelist Config ===
+    if (!focusConfigData) {
+      html += `<div class="focus-offline" style="padding:20px;">配置加载失败<br><span style="font-size:0.7em;">请确保服务器已重启</span></div>`;
+    } else {
+      // Blacklist
+      html += `<div class="focus-config-section">`;
+      html += `<h4>摸鱼黑名单关键词 <span style="font-weight:400;color:var(--text-dim);">（匹配到即记摸鱼）</span></h4>`;
+      html += `<div class="focus-config-list">`;
+      (focusConfigData.distraction_keywords || []).forEach(kw => {
+        html += `<span class="focus-config-tag black">${kw}<span class="tag-del" onclick="removeFocusKeyword('distraction_keywords','${kw}')">×</span></span>`;
+      });
+      html += `</div>`;
+      html += `<div class="focus-config-input-row">`;
+      html += `<input id="newBlackKw" placeholder="添加关键词...">`;
+      html += `<button onclick="addFocusKeyword('distraction_keywords')">添加</button>`;
+      html += `</div>`;
+      html += `</div>`;
+
+      // Whitelist
+      html += `<div class="focus-config-section">`;
+      html += `<h4>学习白名单关键词 <span style="font-weight:400;color:var(--text-dim);">（匹配到则不记摸鱼）</span></h4>`;
+      html += `<div class="focus-config-list">`;
+      (focusConfigData.whitelist_keywords || []).forEach(kw => {
+        html += `<span class="focus-config-tag white">${kw}<span class="tag-del" onclick="removeFocusKeyword('whitelist_keywords','${kw}')">×</span></span>`;
+      });
+      html += `</div>`;
+      html += `<div class="focus-config-input-row">`;
+      html += `<input id="newWhiteKw" placeholder="添加关键词...">`;
+      html += `<button onclick="addFocusKeyword('whitelist_keywords')">添加</button>`;
+      html += `</div>`;
+      html += `</div>`;
+
+      html += `<p style="font-size:0.65em;color:var(--text-dim);margin-top:8px;">修改后自动保存，监控脚本每30秒自动加载新配置</p>`;
+    }
+  }
+
+  box.innerHTML = html;
+}
+
+function addFocusKeyword(listKey) {
+  if (!focusConfigData) return;
+  const inputId = listKey === 'distraction_keywords' ? 'newBlackKw' : 'newWhiteKw';
+  const input = document.getElementById(inputId);
+  if (!input || !input.value.trim()) return;
+  const kw = input.value.trim().toLowerCase();
+  if (!focusConfigData[listKey].includes(kw)) {
+    focusConfigData[listKey].push(kw);
+    saveFocusConfig();
+    renderFocusDetail();
+  }
+}
+
+async function removeFocusKeyword(listKey, kw) {
+  if (!focusConfigData) return;
+  focusConfigData[listKey] = focusConfigData[listKey].filter(k => k !== kw);
+  await saveFocusConfig();
+  renderFocusDetail();
+}
+
+// ===== Focus Detail Charts =====
+function drawFocusTimeline(canvas, sessions) {
+  if (!canvas) return;
+  const W = 640, H = 200, padL = 40, padR = 16, padT = 20, padB = 30;
+  const ctx = setupCanvas(canvas, W, H);
+  const chartW = W - padL - padR, chartH = H - padT - padB;
+
+  if (sessions.length === 0) return;
+
+  // Build hourly buckets
+  const hourly = {};
+  sessions.forEach(s => {
+    const h = parseInt(s.start.split(':')[0]);
+    const hourKey = String(h).padStart(2, '0');
+    if (!hourly[hourKey]) hourly[hourKey] = { study: 0, distraction: 0 };
+    if (s.category === 'distraction') hourly[hourKey].distraction += (s.duration_sec || 0) / 60;
+    else if (s.category === 'study') hourly[hourKey].study += (s.duration_sec || 0) / 60;
+  });
+
+  const hours = [];
+  for (let h = 0; h < 24; h++) {
+    const key = String(h).padStart(2, '0');
+    hours.push({ hour: key, ...(hourly[key] || { study: 0, distraction: 0 }) });
+  }
+
+  const maxMin = Math.max(1, ...hours.map(h => h.study + h.distraction));
+  const barW = Math.max(4, Math.floor(chartW / 24) - 2);
+
+  // Y-axis
+  ctx.strokeStyle = CHART_COLORS.grid; ctx.lineWidth = 1;
+  ctx.fillStyle = CHART_COLORS.text; ctx.font = '10px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 3; i++) {
+    const y = padT + chartH * (1 - i / 3);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillText(Math.round(maxMin * i / 3) + '', padL - 6, y + 4);
+  }
+
+  // Bars
+  hours.forEach((h, i) => {
+    const x = padL + i * (chartW / 24);
+    const totalH = h.study + h.distraction;
+    if (totalH === 0) return;
+    const barH = (totalH / maxMin) * chartH;
+    const y = padT + chartH - barH;
+
+    if (h.study > 0) {
+      const studyH = (h.study / totalH) * barH;
+      ctx.fillStyle = '#8fc9a9';
+      ctx.fillRect(x, y, barW, studyH);
+    }
+    if (h.distraction > 0) {
+      const distH = (h.distraction / totalH) * barH;
+      ctx.fillStyle = '#e8734a';
+      ctx.fillRect(x, y + (h.study / totalH) * barH, barW, distH);
+    }
+  });
+
+  // X-axis labels
+  ctx.textAlign = 'center'; ctx.fillStyle = CHART_COLORS.text; ctx.font = '9px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif';
+  for (let h = 0; h < 24; h += 3) {
+    ctx.fillText(h + '时', padL + h * (chartW / 24), H - 4);
+  }
+
+  // Legend
+  ctx.fillStyle = '#8fc9a9'; ctx.fillRect(W - 80, 4, 10, 10);
+  ctx.fillStyle = CHART_COLORS.text; ctx.textAlign = 'left';
+  ctx.fillText('学习', W - 66, 13);
+  ctx.fillStyle = '#e8734a'; ctx.fillRect(W - 40, 4, 10, 10);
+  ctx.fillStyle = CHART_COLORS.text;
+  ctx.fillText('摸鱼', W - 26, 13);
+}
+
+function drawFocusDailyCompare(canvas, focusData) {
+  if (!canvas || !focusData) return;
+  const W = 640, H = 200, padL = 44, padR = 16, padT = 20, padB = 32;
+  const ctx = setupCanvas(canvas, W, H);
+  const chartW = W - padL - padR, chartH = H - padT - padB;
+
+  // Collect last 7 days
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const sum = (focusData.today_summary && focusData.today_summary[key]) || {};
+    days.push({
+      label: `${d.getMonth()+1}/${d.getDate()}`,
+      study: sum.study_sec || 0,
+      distraction: sum.distraction_sec || 0
+    });
+  }
+
+  const maxSec = Math.max(1, ...days.map(d => d.study + d.distraction));
+  const barW = Math.max(12, Math.floor(chartW / 7) - 12);
+  const gap = (chartW - barW * 7) / 8;
+
+  // Y-axis
+  ctx.strokeStyle = CHART_COLORS.grid; ctx.lineWidth = 1;
+  ctx.fillStyle = CHART_COLORS.text; ctx.font = '10px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 3; i++) {
+    const y = padT + chartH * (1 - i / 3);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillText(formatDuration(maxSec * i / 3), padL - 6, y + 4);
+  }
+
+  // Bars
+  days.forEach((d, i) => {
+    const total = d.study + d.distraction;
+    if (total === 0) return;
+    const x = padL + gap + i * (barW + gap);
+    const barH = (total / maxSec) * chartH;
+    const y = padT + chartH - barH;
+
+    if (d.study > 0) {
+      const studyH = (d.study / total) * barH;
+      ctx.fillStyle = '#8fc9a9';
+      ctx.fillRect(x, y, barW, studyH);
+    }
+    if (d.distraction > 0) {
+      const distH = (d.distraction / total) * barH;
+      ctx.fillStyle = '#e8734a';
+      ctx.fillRect(x, y + (d.study / total) * barH, barW, distH);
+    }
+
+    // Label
+    ctx.fillStyle = CHART_COLORS.text; ctx.textAlign = 'center'; ctx.font = '10px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif';
+    ctx.fillText(d.label, x + barW / 2, H - 6);
+  });
+}
+
+function drawFocusSourceChart(canvas, distractions) {
+  if (!canvas || distractions.length === 0) return;
+  const W = 640, H = 180, padL = 80, padR = 16, padT = 16, padB = 16;
+  const ctx = setupCanvas(canvas, W, H);
+  const chartW = W - padL - padR, chartH = H - padT - padB;
+
+  // Aggregate by source
+  const sourceMap = {};
+  distractions.forEach(s => {
+    const src = s.matched || '其他';
+    sourceMap[src] = (sourceMap[src] || 0) + (s.duration_sec || 0);
+  });
+  const sorted = Object.entries(sourceMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const maxVal = Math.max(1, ...sorted.map(s => s[1]));
+
+  const barH = Math.max(14, Math.floor(chartH / sorted.length) - 8);
+
+  sorted.forEach((entry, i) => {
+    const y = padT + i * (barH + 8);
+    const w = (entry[1] / maxVal) * chartW;
+
+    ctx.fillStyle = '#e8734a';
+    ctx.beginPath();
+    ctx.roundRect(padL, y, Math.max(w, 4), barH, [4, 4, 4, 4]);
+    ctx.fill();
+
+    ctx.fillStyle = CHART_COLORS.text; ctx.textAlign = 'right'; ctx.font = '11px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif';
+    ctx.fillText(entry[0], padL - 8, y + barH / 2 + 4);
+
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.font = 'bold 10px "ZCOOL XiaoWei","Microsoft YaHei",sans-serif';
+    ctx.fillText(formatDuration(entry[1]), padL + Math.min(w, chartW - 50) + 6, y + barH / 2 + 4);
+  });
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'focusModalOverlay') closeFocusDetail();
+});
+
+// ========== 数据迁移：将0:00-3:59的番茄记录归到前一天 ==========
+async function migratePomoTo4amBoundary() {
+  const state = await getState();
+  if (state._migrated_pomo_4am) return; // 已迁移过，跳过
+  const pomoKeys = Object.keys(state).filter(k => /^pomo_\d{4}_\d{1,2}_\d{1,2}$/.test(k));
+  let moved = 0;
+  pomoKeys.forEach(key => {
+    const records = state[key];
+    if (!Array.isArray(records)) return;
+    const stay = [];
+    records.forEach(r => {
+      const hour = parseInt((r.time || '0').split(':')[0]) || 0;
+      if (hour < 4) {
+        // 移到前一天
+        const parts = key.split('_'); // pomo, year, month, day
+        const d = new Date(parseInt(parts[1]), parseInt(parts[2]) - 1, parseInt(parts[3]));
+        d.setDate(d.getDate() - 1);
+        const prevKey = `pomo_${d.getFullYear()}_${d.getMonth()+1}_${d.getDate()}`;
+        if (!state[prevKey]) state[prevKey] = [];
+        state[prevKey].push(r);
+        moved++;
+      } else {
+        stay.push(r);
+      }
+    });
+    if (stay.length === 0) delete state[key];
+    else state[key] = stay;
+  });
+  state._migrated_pomo_4am = true;
+  await setState(state);
+  if (moved > 0) console.log(`番茄记录已迁移：${moved} 条归入前一天（按凌晨4点分界）`);
+}
+
 (async function() {
   await checkServer();
+  await migratePomoTo4amBoundary();
   await render();
   updateDashboard();
   await processPendingPomoRecords();
-  renderPomoLog();
+  updatePomoCount();
+  updateFocusPanel();
   const now = new Date();
   const todayStr = `${now.getMonth()+1}月${now.getDate()}日`;
   document.querySelectorAll('.day-block').forEach(b => { const h = b.querySelector('.day-label'); if (h && h.textContent.includes(todayStr)) b.classList.add('open'); });

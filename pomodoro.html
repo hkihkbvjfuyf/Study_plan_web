@@ -118,18 +118,18 @@
 <body>
 
 <div class="gif-bg" id="gifBg"></div>
-<button class="btn-switch-bg" onclick="switchBg()" title="换一张背景">🔄</button>
+<button class="btn-switch-bg" onclick="switchBg()" title="换一张背景">换</button>
 
 <div class="info-panel">
   <div class="task-label">
-    <span class="icon">📖</span>
+    <span class="icon">·</span>
     <span id="taskName">自由学习</span>
   </div>
   <div class="status-tag" id="statusTag">专注中</div>
   <div class="timer-display" id="timerDisplay">45:00</div>
   <div class="btn-row" id="btnRow">
     <button class="btn btn-pause" id="btnPause" onclick="togglePause()">⏸️ 暂停</button>
-    <button class="btn btn-exit" onclick="exitTimer()">✕ 退出</button>
+    <button class="btn btn-exit" onclick="exitTimer()">退出</button>
   </div>
   <div class="btn-row" id="doneActions" style="display:none;">
     <button class="btn btn-back" onclick="goBack()">← 返回研习室</button>
@@ -236,7 +236,7 @@ function tick() {
       document.getElementById('statusTag').textContent = '休息时间';
       document.getElementById('statusTag').className = 'status-tag break';
       document.getElementById('timerDisplay').className = 'timer-display break';
-      document.getElementById('taskName').textContent = '☕ 休息一下~';
+      document.getElementById('taskName').textContent = '休息一下~';
       document.getElementById('btnPause').textContent = '⏸️ 暂停';
       document.getElementById('btnPause').className = 'btn btn-pause';
       isPaused = false;
@@ -247,7 +247,7 @@ function tick() {
       isDone = true;
       document.getElementById('statusTag').textContent = '完成';
       document.getElementById('statusTag').className = 'status-tag';
-      document.getElementById('timerDisplay').textContent = '✨';
+      document.getElementById('timerDisplay').textContent = '完成';
       document.getElementById('timerDisplay').className = 'timer-display done';
       document.getElementById('taskName').textContent = '休息结束，继续加油！';
       document.getElementById('btnRow').style.display = 'none';
@@ -287,6 +287,7 @@ function exitTimer() {
     const elapsedMin = Math.round((Date.now() - startTime) / 60000);
     if (elapsedMin >= 1) {
       saveRecord(elapsedMin);
+      window._exitSaved = true;
     }
   }
   if (timerInterval) clearInterval(timerInterval);
@@ -304,6 +305,7 @@ timerInterval = setInterval(tick, 1000);
 
 // Warn before leaving
 window.addEventListener('beforeunload', () => {
+  if (window._exitSaved) return;
   if (!isDone && !isBreak && totalSeconds < initialDuration) {
     const elapsedMin = Math.round((Date.now() - startTime) / 60000);
     if (elapsedMin >= 1) {
