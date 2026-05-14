@@ -369,6 +369,77 @@
   .modal-close { float: right; background: none; border: none; font-size: 1.3em; cursor: pointer; color: var(--text-dim); transition: color 0.2s; }
   .modal-close:hover { color: var(--fire); }
 
+  /* ===== 聊天面板 ===== */
+  .chat-panel-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(90,74,58,0.3); backdrop-filter: blur(4px);
+    z-index: 9998; justify-content: flex-end;
+  }
+  .chat-panel-overlay.show { display: flex; }
+
+  .chat-panel {
+    width: 380px; max-width: 92vw; height: 100%;
+    background: var(--white); box-shadow: -4px 0 40px rgba(0,0,0,0.12);
+    display: flex; flex-direction: column;
+    animation: slideIn 0.25s ease-out;
+    border-left: 1.5px solid var(--border);
+  }
+  @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+  .chat-header {
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: linear-gradient(135deg, #faf6f0, #f0ebe0);
+    flex-shrink: 0;
+  }
+  .chat-header span { font-weight: 600; font-size: 0.9em; color: var(--text); letter-spacing: 1px; }
+
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    scroll-behavior: smooth;
+  }
+  .chat-msg {
+    max-width: 85%; padding: 10px 14px; border-radius: 16px;
+    font-size: 0.8em; line-height: 1.55; word-break: break-word;
+    animation: msgIn 0.2s ease-out;
+  }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .chat-msg.user {
+    align-self: flex-end; background: linear-gradient(135deg, #8fc9a9, #6b9e7d);
+    color: #fff; border-bottom-right-radius: 4px;
+  }
+  .chat-msg.assistant {
+    align-self: flex-start; background: #f5f0e8; color: var(--text);
+    border-bottom-left-radius: 4px;
+  }
+  .chat-msg.loading {
+    align-self: flex-start; background: #f5f0e8; color: var(--text-dim);
+    font-style: italic;
+  }
+  .chat-msg .msg-time { font-size: 0.65em; opacity: 0.5; margin-top: 4px; display: block; }
+
+  .chat-input-row {
+    padding: 12px 16px; border-top: 1px solid var(--border);
+    display: flex; gap: 8px; background: #fdfcf8; flex-shrink: 0;
+  }
+  .chat-input-row input {
+    flex: 1; padding: 10px 14px; border-radius: 24px; border: 1.5px solid var(--border);
+    font-size: 0.82em; font-family: inherit; background: #faf6f0;
+    outline: none; transition: border-color 0.2s;
+  }
+  .chat-input-row input:focus { border-color: #8fc9a9; }
+  .chat-input-row button {
+    padding: 10px 20px; border-radius: 24px; border: none;
+    background: linear-gradient(135deg, #8fc9a9, #6b9e7d);
+    color: #fff; cursor: pointer; font-size: 0.82em; font-family: inherit;
+    font-weight: 600; letter-spacing: 1px; transition: opacity 0.2s;
+  }
+  .chat-input-row button:hover { opacity: 0.85; }
+  .chat-input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .chat-empty { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: 0.82em; line-height: 1.8; }
+
   /* ===== 番茄钟统计弹窗 ===== */
   .stats-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(90,74,58,0.4); backdrop-filter: blur(6px); z-index: 9999; justify-content: center; align-items: flex-start; padding-top: 30px; }
   .stats-modal-overlay.show { display: flex; }
@@ -629,6 +700,9 @@
   <div class="countdown-wrap" id="countdown">距考研还有 ... 天</div>
 </div>
 
+</div>
+<!-- end header-wrap -->
+
 <div class="progress-bar-wrap">
   <div class="progress-bar-outer">
     <div class="progress-bar-inner" id="progressBar"></div>
@@ -636,9 +710,6 @@
   <div class="progress-text" id="progressText">加载中...</div>
   <div style="text-align:center"><span class="server-status offline" id="serverStatus">未连接服务器</span></div>
 </div>
-
-</div>
-<!-- end header-wrap -->
 
 <div class="container" style="margin-bottom:0; padding-bottom:0;">
   <div class="quote-bar" id="quoteBar"></div>
@@ -789,8 +860,27 @@
 <div class="bottom-bar">
   <button class="btn-expand" onclick="expandAll()">展开全部</button>
   <button class="btn-collapse" onclick="collapseAll()">收起全部</button>
-  <button class="btn-reset" onclick="resetAll()">重置进度</button>
   <button class="btn-collapse" onclick="openDiary()" style="background:linear-gradient(135deg,#b8e0cc,#8fc9a9);color:#fff;border:none;">写日记</button>
+  <button class="btn-expand" onclick="toggleChat()" style="background:linear-gradient(135deg,#8fc9a9,#6b9e7d);">&#x1F4AC; 聊天</button>
+</div>
+
+<div class="chat-panel-overlay" id="chatOverlay">
+  <div class="chat-panel">
+    <div class="chat-header">
+      <span>&#x1F4AC; 和流萤讨论计划</span>
+      <button class="modal-close" onclick="toggleChat()">&times;</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-empty">流萤在这里陪你调整计划<br>说说你的想法吧~</div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="输入消息..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button id="chatSendBtn" onclick="sendChat()">发送</button>
+    </div>
+    <div style="font-size:0.55em;text-align:center;padding:4px;color:var(--text-dim);">
+      修改需 10-30 秒 · 完成后自动刷新计划
+    </div>
+  </div>
 </div>
 
 <script>
@@ -815,172 +905,184 @@
 const weeks = [
   {
     title: "第一周（5.11 – 5.17）",
-    subtitle: "概率论 Ch4→Ch6 稳步通关 + 自测",
+    subtitle: "概率论 Ch6-7 收尾",
     days: [
       { date: "5月11日", label: "周一", tag: "plus", tagText: "加速",
         tasks: [
           ["math","数","概率论 Ch4 数学期望 + 方差/协方差 — 一口气过完"],
           ["math","高数","高数：极限计算快练 + 等价替换（10min）"],
           ["eng","英","六级听力1套 + 阅读1篇精读 + 单词50个"],
-          ["pro","专","机械原理 Ch1 绪论 + Ch2 机构结构分析"],
+          ["pro","专","机械原理 Ch1 绪论（视频）"],
         ]},
       { date: "5月12日", label: "周二", tag: "plus", tagText: "加速",
         tasks: [
           ["math","数","概率论 Ch4 收尾 — 课后习题 + 错题整理"],
           ["math","高数","高数：导数计算题2道 + 参数求导1道题"],
           ["eng","英","六级听力1套 + 阅读1篇精读 + 单词50个"],
-          ["pro","专","机械原理 Ch2 完成 + 自由度计算题2道"],
+          ["pro","专","机械原理 Ch2 机构结构分析（视频+教材）"],
         ]},
       { date: "5月13日", label: "周三", tag: "plus", tagText: "加速",
         tasks: [
           ["math","数","概率论 Ch5 大数定律 + 中心极限定理（day1 视频+教材）"],
           ["math","高数","高数：中值定理1道证明题 + 泰勒展开练习"],
           ["eng","英","六级听力1套 + 翻译1篇 + 单词50个"],
-          ["pro","专","机械原理 Ch3 平面机构运动分析"],
+          ["pro","专","机械原理 Ch2 自由度计算题1道"],
         ]},
-      { date: "5月14日", label: "周四", tag: "plus", tagText: "加速",
+      { date: "5月14日", label: "周四", tag: "light", tagText: "恢复",
         tasks: [
-          ["math","数","概率论 Ch5 收尾 — 课后题 + 核心定理默写"],
-          ["math","高数","高数：不定积分计算题2道 + 换元1道题"],
-          ["eng","英","六级听力1套 + 阅读1篇精读 + 单词50个"],
-          ["pro","专","机械原理 Ch3 完成 + 运动分析计算题2道"],
+          ["math","数","方浩 概率论 第6讲 总体+样本+统计量 — 讲义+做题本（约60min）"],
+          ["math","数","方浩 概率论 第6讲 χ²/t/F 分布 — 讲义概念+例题自测（约50min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级阅读1篇精读（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
       { date: "5月15日", label: "周五", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","概率论 Ch6 数理统计 + 抽样分布(χ²/t/F)（day1 视频+教材）"],
-          ["math","高数","高数：定积分计算1道题 + 反常积分审敛"],
-          ["eng","英","六级阅读2篇精读 + 单词50个"],
-          ["pro","专","机械原理 Ch4 平面机构力分析"],
+          ["math","数","方浩 概率论 第6讲 χ²/t/F 分布 — 做题本专项练习（约60min）"],
+          ["math","数","方浩 概率论 第6讲 抽样分布查表+常考结论默写（约40min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级听力1套（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
-      { date: "5月16日", label: "周六", tag: "plus", tagText: "冲刺",
+      { date: "5月16日", label: "周六", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","概率论 Ch6 收尾 — 课后题 + Ch4-Ch6综合习题"],
-          ["math","高数","高数：本周高数薄弱点速通 + 错题复习"],
-          ["eng","英","六级听力1套 + 作文1篇 + 本周生词大复习"],
-          ["pro","专","机械原理 Ch4 完成 + 力分析计算题2道"],
-          ["review","复盘","周复盘 15min — 概率论进度检查"],
+          ["math","数","方浩 概率论 第6讲 收尾 — 做题本错题回顾+定理默写（约50min）"],
+          ["math","数","方浩 概率论 第7讲 点估计（矩估计+最大似然）— 讲义+做题本（约60min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级翻译1篇（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
-      { date: "5月17日", label: "周日", tag: "light", tagText: "轻量",
+      { date: "5月17日", label: "周日", tag: "light", tagText: "缓冲",
         tasks: [
-          ["math","数","概率论 Ch4-Ch6 错题本整理"],
-          ["math","高数","高数：微分方程计算题1道"],
-          ["eng","英","六级听力1套 + 作文模板整理"],
-          ["pro","专","机械原理 Ch1-Ch4 回顾（翻翻教材）"],
-          ["review","复盘","休息调整 / 补未完成任务"],
+          ["math","数","方浩 概率论 第7讲 估计量评选标准+区间估计 — 讲义+做题本（约60min）"],
+          ["math","数","方浩 概率论 第7讲 最大似然估计 做题本专项（约50min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级阅读1篇精读（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
+          ["review","复盘","周复盘 15min — 概率论进度检查+薄弱点标记"],
         ]},
     ]
   },
   {
     title: "第二周（5.18 – 5.24）",
-    subtitle: "概率论 Ch7 收尾 + 线代 Ch1→Ch4 推进",
+    subtitle: "线代 Ch1-4 核心突破",
     days: [
-      { date: "5月18日", label: "周一", tag: "plus", tagText: "加速",
+      { date: "5月18日", label: "周一", tag: "light", tagText: "缓冲",
         tasks: [
-          ["math","数","概率论 Ch7 点估计+区间估计（day1 视频+教材）"],
-          ["math","高数","高数：多元偏导数计算 + 全微分1道题"],
-          ["eng","英","六级真题阅读2篇 + 听力1套 + 单词50个"],
-          ["pro","专","机械原理 自由度计算专项练习2道"],
+          ["math","数","方浩 概率论 第7讲 收尾 — 做题本错题回顾+公式默写（约40min）"],
+          ["math","数","概率论全书框架整理+Ch4-7错题本通览（约40min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["review","复盘","本周未完成任务补漏 — 全部完成则休息"],
         ]},
       { date: "5月19日", label: "周二", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","概率论 Ch7 收尾 — 课后习题 + 全书框架整理"],
-          ["math","高数","高数：二重积分计算1道题 + 交换积分次序"],
-          ["eng","英","六级翻译1篇 + 阅读1篇 + 单词50个"],
-          ["pro","专","机械原理 运动分析专项练习2道"],
+          ["math","数","方浩 线代 第1讲 行列式 — 讲义+做题本（约60min）"],
+          ["math","数","方浩 线代 第1讲 行列式计算专项 — 递推/数学归纳法/范德蒙（约50min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级听力1套（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
       { date: "5月20日", label: "周三", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","线代 Ch1 行列式 — 视频+教材+课后题"],
-          ["math","高数","高数：无穷级数审敛练习 + 幂级数求和1道题"],
-          ["eng","英","六级听力1套 + 作文1篇 + 单词50个"],
-          ["pro","专","机械原理 力分析专项练习2道"],
+          ["math","数","方浩 线代 第1讲 错题回顾+行列式性质默写（约30min）"],
+          ["math","数","方浩 线代 第2讲 矩阵运算+逆矩阵 — 讲义+做题本（约60min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级阅读1篇精读（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
       { date: "5月21日", label: "周四", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","线代 Ch2 矩阵 — 视频+教材+课后题"],
-          ["math","高数","高数：极限/导数/积分综合题1道（保持手感）"],
-          ["eng","英","六级真题阅读2篇 + 听力1套 + 单词50个"],
-          ["pro","专","机械原理 Ch3+Ch4 综合练习"],
+          ["math","数","方浩 线代 第2讲 分块矩阵+伴随矩阵 — 做题本专项（约50min）"],
+          ["math","数","方浩 线代 第2讲 收尾 — 做题本错题+矩阵公式默写（约40min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级翻译1篇（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
       { date: "5月22日", label: "周五", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","线代 Ch3 向量 — 视频+教材+课后题（线性相关性是重点）"],
-          ["math","高数","高数：微分方程求解1道题 + 中值定理证明复习"],
-          ["eng","英","六级翻译1篇 + 阅读1篇 + 单词50个"],
-          ["pro","专","机械原理 全书重点题 + 整理思维导图"],
+          ["math","数","方浩 线代 第3讲 向量线性表示+线性相关性 — 讲义+做题本（约60min）"],
+          ["math","数","方浩 线代 第3讲 向量组的秩+极大无关组 — 讲义+做题本（约50min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级阅读1篇精读（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
-      { date: "5月23日", label: "周六", tag: "plus", tagText: "冲刺",
+      { date: "5月23日", label: "周六", tag: "plus", tagText: "加速",
         tasks: [
-          ["math","数","线代 Ch4 线性方程组 — 解的结构+习题（线代核心章）"],
-          ["math","高数","高数：本周高数薄弱点速通 + 专项练习题2道"],
-          ["eng","英","六级完整真题1套(限时模拟) + 批改"],
-          ["pro","专","机械原理 自测模拟题1套 + 错题整理"],
-          ["review","复盘","周复盘 15min — 概率论收尾 + 线代进度检查"],
+          ["math","数","方浩 线代 第3讲 线性相关性 — 做题本证明题专项（约60min）"],
+          ["math","数","方浩 线代 第4讲 线性方程组解的结构 — 讲义+做题本（约50min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级听力1套（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
-      { date: "5月24日", label: "周日", tag: "light", tagText: "轻量",
+      { date: "5月24日", label: "周日", tag: "plus", tagText: "冲刺",
         tasks: [
-          ["math","数","线代 Ch1-Ch4 错题本整理"],
-          ["math","高数","高数：重做本周错题1道"],
-          ["eng","英","六级听力1套精听 + 生词复习"],
-          ["pro","专","机械原理 补漏 + 回顾薄弱点"],
-          ["review","复盘","休息调整 / 补未完成任务"],
+          ["math","数","方浩 线代 第4讲 齐次/非齐次方程组 — 做题本专项（约50min）"],
+          ["math","数","方浩 线代 第4讲 带参数方程组讨论 — 讲义+做题本（约50min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级作文范文浏览+句型摘抄（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
+          ["review","复盘","周复盘 15min — 线代 Ch1-4 进度检查"],
         ]},
     ]
   },
   {
     title: "第三周（5.25 – 5.31）",
-    subtitle: "线代 Ch5→Ch6 收尾 + 数一综合强化 + 六月蓄势",
+    subtitle: "线代 Ch5-6 收尾 + 五月总结 + 六月蓄势",
     days: [
       { date: "5月25日", label: "周一", tag: "plus", tagText: "强化",
         tasks: [
-          ["math","数","线代 Ch5 特征值与特征向量 — 视频+教材+课后题"],
-          ["math","高数","高数：做一套高数选填专项题(计时20min)"],
-          ["eng","英","六级听力1套 + 阅读2篇精读 + 单词50个"],
-          ["pro","专","机械设计 Ch1 通读 + Ch2 机械零件强度"],
+          ["math","数","方浩 线代 第5讲 特征值+特征向量 — 讲义+做题本（约60min）"],
+          ["math","数","方浩 线代 第5讲 相似对角化 — 讲义+做题本（约50min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级阅读1篇精读（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
       { date: "5月26日", label: "周二", tag: "plus", tagText: "强化",
         tasks: [
-          ["math","数","线代 Ch6 二次型 — 视频+教材 + 线代全书框架整理"],
-          ["math","高数","高数：多元微分/二重积分综合题1道"],
-          ["eng","英","六级翻译1篇 + 作文模板整理 + 单词50个"],
-          ["pro","专","机械设计 Ch3 摩擦磨损润滑"],
+          ["math","数","方浩 线代 第5讲 特征值+特征向量 — 讲义+做题本（约60min）"],
+          ["math","数","方浩 线代 第5讲 相似对角化 — 讲义+做题本（约50min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级阅读1篇精读（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
       { date: "5月27日", label: "周三", tag: "plus", tagText: "强化",
         tasks: [
-          ["math","数","概率论错题补漏 + 线代错题综合复习"],
-          ["math","高数","高数：级数审敛+幂级数求和综合练习"],
-          ["eng","英","六级真题完整模拟(含作文,严格计时) + 批改"],
-          ["pro","专","机械设计 Ch4 螺纹连接"],
+          ["math","数","方浩 线代 第5讲 实对称矩阵对角化 — 做题本专项（约50min）"],
+          ["math","数","方浩 线代 第5讲 收尾 — 错题回顾+特征值定理默写（约40min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级翻译1篇（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
       { date: "5月28日", label: "周四", tag: "plus", tagText: "强化",
         tasks: [
-          ["math","数","数一三科交叉 — 高数+线代+概率各做1道大题"],
-          ["math","高数","高数：做一套高数计算专项题(计时25min)"],
-          ["eng","英","六级听力精听1套 + 阅读错题复习 + 单词50个"],
-          ["pro","专","机械设计 Ch5 带传动 + Ch6 链传动"],
+          ["math","数","方浩 线代 第6讲 二次型标准型+规范型 — 讲义+做题本（约60min）"],
+          ["math","数","方浩 线代 第6讲 正定二次型+矩阵合同 — 讲义+做题本（约50min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级听力1套（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
       { date: "5月29日", label: "周五", tag: "plus", tagText: "强化",
         tasks: [
-          ["math","数","数一三科交叉 — 线代大题1道 + 概率大题1道"],
-          ["math","高数","高数：重点攻克薄弱题型（自选）"],
-          ["eng","英","六级作文练习1篇 + 翻译1篇 + 单词50个"],
-          ["pro","专","机械设计 Ch7 齿轮传动（一半）"],
+          ["math","数","方浩 线代 第6讲 做题本专项练习+错题回顾（约50min）"],
+          ["math","数","线代全书框架整理+核心定理脉络图（约50min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级阅读1篇精读（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
       { date: "5月30日", label: "周六", tag: "plus", tagText: "月末总结",
         tasks: [
-          ["math","数","五月数学全面复盘 — 高数+线代+概率错题本通览"],
-          ["math","高数","高数：五月高数错题全部过一遍 + 综合计算题2道"],
-          ["eng","英","六级听力1套 + 整套真题模拟 + 批改"],
-          ["pro","专","机械设计 Ch7 齿轮传动完成 + 重点计算题2道"],
-          ["review","复盘","月末全面复盘 30min — 五月总结 + 六月计划"],
+          ["math","数","五月数学全面复盘：概率论+线代所有错题本通览+重做标记题（约80min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","六级作文模板整理+句型默写（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
-      { date: "5月31日", label: "周日", tag: "light", tagText: "轻量",
+      { date: "5月31日", label: "周日", tag: "light", tagText: "月末收尾",
         tasks: [
-          ["eng","英","六级听力精听 + 作文模板继续整理"],
-          ["math","高数","高数：重做本周错题1道（不刷新题）"],
-          ["math","数","整理六月学习计划"],
-          ["pro","专","机械设计 五月进度检查 + 六月规划"],
-          ["review","复盘","休息调整，迎接六月"],
+          ["math","数","线代薄弱点最后补充 + 六月数学预习方向标记（约50min）"],
+          ["review","复盘","五月总结：各科完成度检查+六月计划制定（约40min）"],
+          ["eng","英","扇贝单词 — 复习300 + 新学100（约60min）"],
+          ["eng","英","本周生词大复习+扇贝打卡检查（约25min）"],
+          ["pro","专","求臻机械考研（约60min）"],
         ]},
     ]
   },
@@ -2898,6 +3000,91 @@ async function migratePomoTo4amBoundary() {
   await setState(state);
   if (moved > 0) console.log(`番茄记录已迁移：${moved} 条归入前一天（按凌晨4点分界）`);
 }
+
+// ========== 聊天面板 ==========
+let chatMessages = [];
+let chatOpen = false;
+
+function toggleChat() {
+  chatOpen = !chatOpen;
+  const overlay = document.getElementById('chatOverlay');
+  if (chatOpen) {
+    overlay.classList.add('show');
+    document.getElementById('chatInput').focus();
+  } else {
+    overlay.classList.remove('show');
+  }
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  input.disabled = true;
+  document.getElementById('chatSendBtn').disabled = true;
+
+  chatMessages.push({ role: 'user', content: msg });
+  renderChatMessages();
+
+  // 显示加载中
+  const loadId = 'load_' + Date.now();
+  const msgsEl = document.getElementById('chatMessages');
+  const loadEl = document.createElement('div');
+  loadEl.className = 'chat-msg loading';
+  loadEl.id = loadId;
+  loadEl.textContent = '流萤思考中...';
+  msgsEl.appendChild(loadEl);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: chatMessages }),
+    });
+    const data = await res.json();
+    const reply = data.reply || '（无回复）';
+    chatMessages.push({ role: 'assistant', content: reply });
+    // 移除加载中
+    const el = document.getElementById(loadId);
+    if (el) el.remove();
+    renderChatMessages();
+    // 自动刷新计划
+    await render();
+    updateDashboard();
+  } catch (e) {
+    const el = document.getElementById(loadId);
+    if (el) el.remove();
+    chatMessages.push({ role: 'assistant', content: '网络错误，请检查服务器是否运行。' });
+    renderChatMessages();
+  }
+
+  input.disabled = false;
+  document.getElementById('chatSendBtn').disabled = false;
+  input.focus();
+}
+
+function renderChatMessages() {
+  const msgsEl = document.getElementById('chatMessages');
+  if (chatMessages.length === 0) {
+    msgsEl.innerHTML = '<div class="chat-empty">流萤在这里陪你调整计划<br>说说你的想法吧~</div>';
+    return;
+  }
+  let html = '';
+  chatMessages.forEach(m => {
+    const role = m.role === 'user' ? 'user' : 'assistant';
+    const text = m.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+    html += `<div class="chat-msg ${role}">${text}</div>`;
+  });
+  msgsEl.innerHTML = html;
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+// 点击 overlay 空白处关闭
+document.addEventListener('click', function(e) {
+  if (e.target.id === 'chatOverlay') toggleChat();
+});
 
 (async function() {
   await checkServer();

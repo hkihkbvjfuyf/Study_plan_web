@@ -21,6 +21,12 @@
 - **手动刷新** — 总结支持手动刷新，凌晨4点自动生成昨日首次总结
 - **历史回顾** — 按日期查看过往日记和总结
 
+### AI 聊天助手
+- **流萤人格** — 模仿《崩坏：星穹铁道》角色"流萤"的温柔陪伴风格
+- **计划修改** — 直接在聊天中讨论调整任务、生成后续计划
+- **自动刷新** — AI 修改计划后页面自动更新
+- **上下文感知** — 聊天自动附带当前计划数据和完成进度
+
 ### 专注监控
 - **窗口活动追踪** — 后台检测当前活动窗口标题，识别摸鱼行为
 - **智能过滤** — 黑白名单机制，学习相关关键词自动排除
@@ -55,14 +61,18 @@ python focus_monitor.py
 ## 项目结构
 
 ```
-├── server.py                  # Python HTTP 服务端 + 状态持久化 API
+├── server.py                  # Python HTTP 服务端 + 状态持久化 + AI 聊天 API
 ├── focus_monitor.py           # 专注监控后台脚本
-├── 五月每日计划.html           # 主应用（内联 CSS + JS）
+├── 五月每日计划.html           # 主应用（内联 CSS + JS，含聊天面板）
 ├── pomodoro.html              # 番茄钟全屏页面
 ├── checklist_state.json       # 打卡/番茄/日记/总结数据
 ├── focus_state.json           # 专注监控记录
 ├── focus_config.json          # 黑白名单配置
 ├── 考研计划表.md               # 考研备考详细计划参考文档
+├── CLAUDE.md                  # Claude Code 项目指南
+├── study-plan-2.0.0/          # 学习计划技能包
+│   ├── SKILL.md               # 学习计划管理器技能
+│   └── firefly-chat.md        # 流萤聊天风格定义
 ├── source/
 │   ├── IMG_20260511_211644.png  # 页面插图
 │   └── gif/                     # 番茄钟背景动图
@@ -77,6 +87,7 @@ python focus_monitor.py
 | `/api/state` | POST | 保存状态 |
 | `/api/focus` | GET | 获取专注监控数据 |
 | `/api/focus_config` | GET/POST | 读写黑白名单配置 |
+| `/api/chat` | POST | AI 聊天 — 通过 Claude Code CLI 中转 |
 
 ## 技术栈
 
